@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useChatStore } from "@/store/chat-store";
 import type { Message, Citation } from "@/types";
 
@@ -10,35 +10,42 @@ interface UseChatOptions {
 
 export function useChat({ notebookId }: UseChatOptions) {
   const [error, setError] = useState<string | null>(null);
-  const {
-    messages,
-    activeConversationId,
-    isStreaming,
-    streamContent,
-    pipelineState,
-    setMessages,
-    setActiveConversation,
-    addMessage,
-    setStreaming,
-    setStreamContent,
-    appendStreamContent,
-    setPipelineState,
-  } = useChatStore();
+  const hasLoadedRef = useRef(false);
+  const isStreamingRef = useRef(false);
 
-  // Load the most recent conversation for this notebook on mount
+  const messages = useChatStore((s) => s.messages);
+  const activeConversationId = useChatStore((s) => s.activeConversationId);
+  const isStreaming = useChatStore((s) => s.isStreaming);
+  const streamContent = useChatStore((s) => s.streamContent);
+  const pipelineState = useChatStore((s) => s.pipelineState);
+  const setMessages = useChatStore((s) => s.setMessages);
+  const setActiveConversation = useChatStore((s) => s.setActiveConversation);
+  const addMessage = useChatStore((s) => s.addMessage);
+  const setStreaming = useChatStore((s) => s.setStreaming);
+  const setStreamContent = useChatStore((s) => s.setStreamContent);
+  const appendStreamContent = useChatStore((s) => s.appendStreamContent);
+  const setPipelineState = useChatStore((s) => s.setPipelineState);
+
+  // Keep streaming ref in sync
   useEffect(() => {
-    let cancelled = false;
+    isStreamingRef.current = isStreaming;
+  }, [isStreaming]);
+
+  // Load the most recent conversation for this notebook on mount ONLY
+  useEffect(() => {
+    if (hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
 
     async function loadConversation() {
       try {
-        // Fetch conversations for this notebook
         const res = await fetch(`/api/chat/history?notebookId=${notebookId}`);
         if (!res.ok) return;
         const data = await res.json();
 
-        if (cancelled) return;
+        // Don't overwrite if user already started streaming
+        if (isStreamingRef.current) return;
 
-        if (data.conversation && data.messages) {
+        if (data.conversation && data.messages && data.messages.length > 0) {
           setActiveConversation(data.conversation.id);
           setMessages(
             data.messages.map((m: any) => ({
@@ -51,18 +58,17 @@ export function useChat({ notebookId }: UseChatOptions) {
             }))
           );
         } else {
-          // No existing conversation
           setActiveConversation(null);
           setMessages([]);
         }
       } catch {
-        // Silently fail — user can still start a new conversation
+        // Silently fail
       }
     }
 
     loadConversation();
-    return () => { cancelled = true; };
-  }, [notebookId, setActiveConversation, setMessages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notebookId]);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -93,7 +99,8 @@ export function useChat({ notebookId }: UseChatOptions) {
         });
 
         if (!response.ok) {
-          throw new Error("Failed to send message");
+          const errText = await response.text();
+          throw new Error(errText || "Failed to send message");
         }
 
         const reader = response.body?.getReader();
@@ -102,8 +109,6 @@ export function useChat({ notebookId }: UseChatOptions) {
         const decoder = new TextDecoder();
         let fullResponse = "";
         let citations: Citation[] = [];
-
-        setPipelineState({ stage: "STREAMING", progress: 60 });
 
         while (true) {
           const { done, value } = await reader.read();
@@ -130,13 +135,14 @@ export function useChat({ notebookId }: UseChatOptions) {
                     progress: parsed.progress,
                   });
                 } else if (parsed.type === "conversationId") {
-                  // Server created a new conversation — track it
                   setActiveConversation(parsed.conversationId);
                 }
               } catch {
-                // Plain text chunk
-                fullResponse += data;
-                appendStreamContent(data);
+                // Non-JSON data chunk
+                if (data.trim()) {
+                  fullResponse += data;
+                  appendStreamContent(data);
+                }
               }
             }
           }

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useMemo } from "react";
 import { useChat } from "@/hooks/use-chat";
-import { useChatStore } from "@/store/chat-store";
 import { ChatInput } from "./chat-input";
 import { ChatMessage } from "./chat-message";
 import { FollowUpSuggestions } from "./follow-up-suggestions";
