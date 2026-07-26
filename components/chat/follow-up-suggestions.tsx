@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Lightbulb } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
 interface FollowUpSuggestionsProps {
   notebookId: string;
@@ -21,9 +20,11 @@ export function FollowUpSuggestions({
 }: FollowUpSuggestionsProps) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
-    if (!show || !lastMessage || !lastResponse) return;
+    if (!show || !lastMessage || !lastResponse || fetchedRef.current) return;
+    fetchedRef.current = true;
 
     const fetchSuggestions = async () => {
       setIsLoading(true);
@@ -39,7 +40,7 @@ export function FollowUpSuggestions({
         });
         if (res.ok) {
           const data = await res.json();
-          setSuggestions(data.suggestions || []);
+          setSuggestions((data.suggestions || []).slice(0, 3));
         }
       } catch {
         setSuggestions([]);
@@ -54,31 +55,19 @@ export function FollowUpSuggestions({
   if (!show || isLoading || suggestions.length === 0) return null;
 
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 10 }}
-        className="max-w-3xl mx-auto w-full"
-      >
-        <div className="flex items-center gap-2 mb-2">
-          <Lightbulb className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground font-medium">
-            Follow-up questions
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {suggestions.map((suggestion, i) => (
-            <button
-              key={i}
-              onClick={() => onSelect(suggestion)}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground hover:border-ring/30 transition-all"
-            >
-              {suggestion}
-            </button>
-          ))}
-        </div>
-      </motion.div>
-    </AnimatePresence>
+    <div className="flex items-start gap-2 pt-2">
+      <Lightbulb className="h-3.5 w-3.5 text-muted-foreground mt-1.5 flex-shrink-0" />
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {suggestions.map((suggestion, i) => (
+          <button
+            key={i}
+            onClick={() => onSelect(suggestion)}
+            className="flex-shrink-0 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground hover:border-ring/30 transition-all whitespace-nowrap"
+          >
+            {suggestion}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useNotebooks } from "@/hooks/use-notebooks";
+import { usePathname, useRouter } from "next/navigation";
+import { useNotebooks, useDeleteNotebook } from "@/hooks/use-notebooks";
 import { CreateNotebookDialog } from "@/components/notebook/create-notebook-dialog";
 import {
   BookOpen,
@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,7 +19,22 @@ import { motion, AnimatePresence } from "framer-motion";
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const { data: notebooks } = useNotebooks();
+  const deleteNotebook = useDeleteNotebook();
+
+  const handleDelete = (e: React.MouseEvent, notebookId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm("Delete this notebook? All sources and conversations will be removed.")) return;
+    deleteNotebook.mutate(notebookId, {
+      onSuccess: () => {
+        if (pathname === `/notebook/${notebookId}`) {
+          router.push("/notebook");
+        }
+      },
+    });
+  };
 
   return (
     <motion.aside
@@ -92,7 +108,7 @@ export function AppSidebar() {
                 key={notebook.id}
                 href={`/notebook/${notebook.id}`}
                 className={cn(
-                  "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+                  "group flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
                   isActive
                     ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
@@ -101,7 +117,16 @@ export function AppSidebar() {
               >
                 <BookOpen className="h-4 w-4 flex-shrink-0" />
                 {!collapsed && (
-                  <span className="truncate">{notebook.title}</span>
+                  <>
+                    <span className="truncate flex-1">{notebook.title}</span>
+                    <button
+                      onClick={(e) => handleDelete(e, notebook.id)}
+                      className="opacity-0 group-hover:opacity-100 rounded p-0.5 hover:bg-destructive/20 hover:text-destructive transition-all"
+                      title="Delete notebook"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </>
                 )}
               </Link>
             );
