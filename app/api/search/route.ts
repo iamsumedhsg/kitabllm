@@ -53,9 +53,9 @@ export async function POST(req: NextRequest) {
       where: { id: { in: sourceIds } },
       select: { id: true, filename: true },
     });
-    const sourceMap = new Map(sources.map((s) => [s.id, s.filename]));
+    const sourceMap = new Map(sources.map((s: { id: string; filename: string }) => [s.id, s.filename]));
 
-    const formattedResults = results.map((r) => ({
+    const formattedResults = results.map((r: { id: string; content: string; sourceId: string; pageNumber: number | null; similarity: number }) => ({
       id: r.id,
       content: r.content,
       sourceId: r.sourceId,
