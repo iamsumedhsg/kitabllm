@@ -49,12 +49,12 @@ export async function GET(
       select: { size: true, status: true },
     });
 
-    const totalStorage = sources.reduce((sum: number, s) => sum + s.size, 0);
-    const readySources = sources.filter((s) => s.status === "READY").length;
+    const totalStorage = sources.reduce((sum: number, s: { size: number; status: string }) => sum + s.size, 0);
+    const readySources = sources.filter((s: { size: number; status: string }) => s.status === "READY").length;
     const indexingSources = sources.filter(
-      (s) => s.status === "INDEXING"
+      (s: { size: number; status: string }) => s.status === "INDEXING"
     ).length;
-    const failedSources = sources.filter((s) => s.status === "FAILED").length;
+    const failedSources = sources.filter((s: { size: number; status: string }) => s.status === "FAILED").length;
 
     return NextResponse.json({
       totalSources: sourceCount,
