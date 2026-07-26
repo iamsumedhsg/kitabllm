@@ -32,11 +32,11 @@ export function SourceUploader({ notebookId, onClose }: SourceUploaderProps) {
   const uploadSource = useUploadSource();
 
   const tabs = [
-    { id: "PDF" as const, label: "PDF", icon: FileText },
-    { id: "YOUTUBE" as const, label: "YT Link", icon: Video },
-    { id: "WEBSITE" as const, label: "Web Link", icon: Globe },
-    { id: "TEXT" as const, label: "Text", icon: AlignLeft },
-    { id: "VTT" as const, label: "VTT", icon: Subtitles },
+    { id: "PDF" as const, label: "PDF", icon: FileText, disabled: false },
+    { id: "YOUTUBE" as const, label: "YT Link", icon: Video, disabled: true },
+    { id: "WEBSITE" as const, label: "Web Link", icon: Globe, disabled: false },
+    { id: "TEXT" as const, label: "Text", icon: AlignLeft, disabled: false },
+    { id: "VTT" as const, label: "VTT", icon: Subtitles, disabled: false },
   ];
 
   const handleFileUpload = async (file: File) => {
@@ -213,16 +213,24 @@ export function SourceUploader({ notebookId, onClose }: SourceUploaderProps) {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => !tab.disabled && setActiveTab(tab.id)}
+                disabled={tab.disabled}
                 className={cn(
-                  "flex flex-col items-center gap-1.5 rounded-lg border p-3 text-xs transition-all",
-                  activeTab === tab.id
-                    ? "border-primary bg-primary/5 text-primary"
-                    : "border-border hover:border-ring/30 hover:bg-accent/50"
+                  "relative flex flex-col items-center gap-1.5 rounded-lg border p-3 text-xs transition-all",
+                  tab.disabled
+                    ? "border-border/50 opacity-50 cursor-not-allowed"
+                    : activeTab === tab.id
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border hover:border-ring/30 hover:bg-accent/50"
                 )}
               >
                 <Icon className="h-5 w-5" />
                 {tab.label}
+                {tab.disabled && (
+                  <span className="absolute -top-1.5 -right-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground border border-border">
+                    Soon
+                  </span>
+                )}
               </button>
             );
           })}
