@@ -94,23 +94,30 @@ export async function processSource(options: ProcessSourceOptions) {
         break;
       }
       case "YOUTUBE": {
-        if (!url) throw new Error("URL is required for YouTube source");
-        log("EXTRACT", `Fetching YouTube transcript`, { url });
-        const ytResult = await extractYouTubeTranscript(url);
-        extractedText = ytResult.fullText;
-        transcriptSegments = ytResult.transcript;
-        metadata = {
-          title: ytResult.title,
-          videoId: ytResult.videoId,
-          segmentCount: ytResult.transcript.length,
-          url,
-        };
-        log("EXTRACT", `YouTube transcript extracted successfully`, {
-          title: ytResult.title,
-          videoId: ytResult.videoId,
-          segmentCount: ytResult.transcript.length,
-          textLength: extractedText.length,
-        });
+        if (content) {
+          // Pre-fetched transcript was sent by the client
+          log("EXTRACT", `Using pre-fetched YouTube transcript`, { contentLength: content.length });
+          extractedText = content;
+          metadata = { url, transcriptSource: "pre-fetched" };
+        } else {
+          if (!url) throw new Error("URL is required for YouTube source");
+          log("EXTRACT", `Fetching YouTube transcript from server`, { url });
+          const ytResult = await extractYouTubeTranscript(url);
+          extractedText = ytResult.fullText;
+          transcriptSegments = ytResult.transcript;
+          metadata = {
+            title: ytResult.title,
+            videoId: ytResult.videoId,
+            segmentCount: ytResult.transcript.length,
+            url,
+          };
+          log("EXTRACT", `YouTube transcript extracted successfully`, {
+            title: ytResult.title,
+            videoId: ytResult.videoId,
+            segmentCount: ytResult.transcript.length,
+            textLength: extractedText.length,
+          });
+        }
         break;
       }
       case "VTT": {

@@ -27,6 +27,8 @@ export function SourceUploader({ notebookId, onClose }: SourceUploaderProps) {
   const [filename, setFilename] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isFetchingTranscript, setIsFetchingTranscript] = useState(false);
   const uploadSource = useUploadSource();
 
   const tabs = [
@@ -50,7 +52,48 @@ export function SourceUploader({ notebookId, onClose }: SourceUploaderProps) {
 
   const handleUrlSubmit = async () => {
     if (!url.trim()) return;
+    setError(null);
 
+    // For YouTube: first try to fetch transcript from the browser (bypasses IP blocks)
+    if (activeTab === "YOUTUBE") {
+      setIsFetchingTranscript(true);
+      try {
+        // Attempt to get transcript via browser → server proxy
+        const transcriptRes = await fetch("/api/youtube/transcript", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: url.trim() }),
+        });
+
+        if (transcriptRes.ok) {
+          const data = await transcriptRes.json();
+          // Send transcript content directly to server for processing
+          const formData = new FormData();
+          formData.append("notebookId", notebookId);
+          formData.append("type", "YOUTUBE");
+          formData.append("url", url.trim());
+          formData.append("content", data.fullText);
+          formData.append("filename", filename.trim() || data.title || "YouTube Video");
+          formData.append("metadata", JSON.stringify({
+            videoId: data.videoId,
+            title: data.title,
+            segmentCount: data.segmentCount,
+            transcriptSource: "server",
+          }));
+
+          await uploadSource.mutateAsync(formData);
+          onClose();
+          return;
+        }
+      } catch {
+        // Server-side transcript fetch failed, fall through to normal upload
+        console.log("[Upload] Server transcript fetch failed, trying direct upload...");
+      } finally {
+        setIsFetchingTranscript(false);
+      }
+    }
+
+    // Normal URL upload (server will attempt to fetch transcript)
     const formData = new FormData();
     formData.append("notebookId", notebookId);
     formData.append("type", activeTab);
@@ -63,8 +106,8 @@ export function SourceUploader({ notebookId, onClose }: SourceUploaderProps) {
     try {
       await uploadSource.mutateAsync(formData);
       onClose();
-    } catch {
-      // Error shown via uploadSource.error
+    } catch (err: any) {
+      setError(err?.message || "Upload failed");
     }
   };
 
