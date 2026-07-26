@@ -78,13 +78,14 @@ export async function runRAGPipeline(
   const sources = await db.source.findMany({
     where: { id: { in: Array.from(allSourceIds) } },
   });
-  const sourceMap = new Map(sources.map((s) => [s.id, s]));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sourceMap = new Map(sources.map((s: any) => [s.id, s]));
 
   // Convert to RetrievedChunk format
   const rankedLists: RetrievedChunk[][] = retrievalResults.map((results) =>
     results
       .map((r) => {
-        const source = sourceMap.get(r.sourceId);
+        const source = sourceMap.get(r.sourceId) as any;
         if (!source) return null;
         return {
           chunk: {
