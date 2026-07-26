@@ -15,6 +15,56 @@ interface VectorSearchResult {
 }
 
 /**
+ * Search chunks by page number (for "what's on page X" queries)
+ */
+export async function pageSearch(
+  notebookId: string,
+  pageNumber: number
+): Promise<VectorSearchResult[]> {
+  const results = await db.$queryRawUnsafe<VectorSearchResult[]>(
+    `
+    SELECT 
+      c.id,
+      c."sourceId",
+      c.content,
+      c."chunkNumber",
+      c."pageNumber",
+      c.timestamp,
+      c.title,
+      c.url,
+      c.metadata,
+      1.0 as similarity
+    FROM "Chunk" c
+    INNER JOIN "Source" s ON c."sourceId" = s.id
+    WHERE s."notebookId" = $1
+      AND s.status = 'READY'
+      AND c."pageNumber" = $2
+    ORDER BY c."chunkNumber" ASC
+    `,
+    notebookId,
+    pageNumber
+  );
+  return results;
+}
+
+/**
+ * Detect if query is asking about a specific page number
+ * Returns the page number if found, null otherwise
+ */
+export function detectPageQuery(query: string): number | null {
+  const patterns = [
+    /page\s*(\d+)/i,
+    /p\.?\s*(\d+)/i,
+    /on\s+(\d+)\s*(st|nd|rd|th)?\s*page/i,
+  ];
+  for (const pattern of patterns) {
+    const match = query.match(pattern);
+    if (match) return parseInt(match[1], 10);
+  }
+  return null;
+}
+
+/**
  * Perform vector similarity search within a notebook
  */
 export async function vectorSearch(

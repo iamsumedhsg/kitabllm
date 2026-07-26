@@ -3,7 +3,7 @@ import { generateStepBack } from "./step-back";
 import { rewriteQuery } from "./query-rewriter";
 import { generateHyDE } from "./hyde";
 import { reciprocalRankFusion, groupChunksBySource, deduplicateChunks } from "./ranker";
-import { vectorSearch, mmrSearch } from "@/lib/vectors/search";
+import { vectorSearch, mmrSearch, pageSearch, detectPageQuery } from "@/lib/vectors/search";
 import { db } from "@/lib/db";
 import type { QueryDecomposition, RetrievedChunk, ChunkGroup, Source } from "@/types";
 
@@ -15,15 +15,97 @@ interface PipelineResult {
 
 /**
  * Full RAG retrieval pipeline
- * 1. Decompose query into sub-queries
- * 2. Step-back prompting
- * 3. Query rewrite
- * 4. HyDE generation
- * 5. Multi-query retrieval (parallel)
- * 6. Deduplication
- * 7. Grouping + RRF ranking
+ * 1. Check for page/metadata queries (short-circuit)
+ * 2. Decompose query into sub-queries
+ * 3. Step-back prompting
+ * 4. Query rewrite
+ * 5. HyDE generation
+ * 6. Multi-query retrieval (parallel)
+ * 7. Deduplication
+ * 8. Grouping + RRF ranking
  */
 export async function runRAGPipeline(
+  query: string,
+  notebookId: string
+): Promise<PipelineResult> {
+  // Short-circuit: detect page-specific queries
+  const requestedPage = detectPageQuery(query);
+
+  if (requestedPage) {
+    console.log(`[RAG] Page query detected: page ${requestedPage}`);
+    return await runPageQuery(query, notebookId, requestedPage);
+  }
+
+  // Full RAG pipeline for semantic queries
+  return await runSemanticPipeline(query, notebookId);
+}
+
+/**
+ * Handle page-specific queries by fetching chunks from that page directly
+ */
+async function runPageQuery(
+  query: string,
+  notebookId: string,
+  pageNumber: number
+): Promise<PipelineResult> {
+  const results = await pageSearch(notebookId, pageNumber);
+
+  if (results.length === 0) {
+    // Fallback to semantic search if no chunks on that page
+    console.log(`[RAG] No chunks found for page ${pageNumber}, falling back to semantic search`);
+    return await runSemanticPipeline(query, notebookId);
+  }
+
+  // Fetch sources
+  const sourceIds = [...new Set(results.map((r) => r.sourceId))];
+  const sources = await db.source.findMany({
+    where: { id: { in: sourceIds } },
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sourceMap = new Map(sources.map((s: any) => [s.id, s]));
+
+  const flatChunks: RetrievedChunk[] = results
+    .map((r) => {
+      const source = sourceMap.get(r.sourceId) as any;
+      if (!source) return null;
+      return {
+        chunk: {
+          id: r.id,
+          sourceId: r.sourceId,
+          content: r.content,
+          chunkNumber: r.chunkNumber,
+          pageNumber: r.pageNumber,
+          timestamp: r.timestamp,
+          title: r.title,
+          url: r.url,
+          metadata: r.metadata as Record<string, unknown> | null,
+          createdAt: new Date(),
+        },
+        score: 1.0,
+        source: source as unknown as Source,
+      };
+    })
+    .filter(Boolean) as RetrievedChunk[];
+
+  const groups = groupChunksBySource(flatChunks);
+
+  return {
+    decomposition: {
+      originalQuery: query,
+      subQueries: [query],
+      stepBackQuery: query,
+      rewrittenQuery: query,
+      hydeDocument: "",
+    },
+    topGroups: groups,
+    flatChunks: flatChunks.slice(0, 12),
+  };
+}
+
+/**
+ * Full semantic RAG pipeline
+ */
+async function runSemanticPipeline(
   query: string,
   notebookId: string
 ): Promise<PipelineResult> {
@@ -45,36 +127,21 @@ export async function runRAGPipeline(
   };
 
   // Step 5: Multi-query retrieval (parallel)
-  const allQueries = [
-    rewrittenQuery,
-    stepBackQuery,
-    hydeDocument,
-    ...subQueries,
-  ];
-
   const retrievalResults = await Promise.all([
-    // Main rewritten query with MMR for diversity
     mmrSearch(rewrittenQuery, notebookId, 8),
-    // Step-back query (broader context)
     vectorSearch(stepBackQuery, notebookId, 5),
-    // HyDE document (hypothetical answer)
     vectorSearch(hydeDocument, notebookId, 5),
-    // Sub-queries
     ...subQueries.map((sq) => vectorSearch(sq, notebookId, 4)),
   ]);
 
   // Fetch source info for all results
-  const allChunkIds = new Set<string>();
   const allSourceIds = new Set<string>();
-
   for (const results of retrievalResults) {
     for (const r of results) {
-      allChunkIds.add(r.id);
       allSourceIds.add(r.sourceId);
     }
   }
 
-  // Fetch sources
   const sources = await db.source.findMany({
     where: { id: { in: Array.from(allSourceIds) } },
   });
@@ -107,7 +174,7 @@ export async function runRAGPipeline(
       .filter(Boolean) as RetrievedChunk[]
   );
 
-  // Step 6: RRF fusion across all retrieval strategies
+  // Step 6: RRF fusion
   const fused = reciprocalRankFusion(rankedLists);
 
   // Step 7: Deduplicate
