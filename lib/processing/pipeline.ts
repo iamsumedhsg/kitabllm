@@ -178,40 +178,51 @@ export async function processSource(options: ProcessSourceOptions) {
       embeddingDim: embeddings[0]?.length || 0,
     });
 
-    // Step 4: Store chunks in database
+    // Step 4: Store chunks in database (batched to avoid transaction timeout)
     log("STORE", `Saving ${chunks.length} chunks to database`);
     const storeStart = Date.now();
 
-    const createdChunks = await db.$transaction(
-      chunks.map((chunk) =>
-        db.chunk.create({
-          data: {
-            sourceId,
-            content: chunk.content,
-            chunkNumber: chunk.metadata.chunkNumber,
-            pageNumber: chunk.metadata.pageNumber || null,
-            timestamp: chunk.metadata.timestamp || null,
-            title: chunk.metadata.title || null,
-            url: chunk.metadata.url || null,
-            metadata: chunk.metadata as object,
-          },
-        })
-      )
-    );
+    const BATCH_SIZE = 10;
+    const createdChunks: { id: string }[] = [];
+
+    for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
+      const batch = chunks.slice(i, i + BATCH_SIZE);
+      const batchResults = await db.$transaction(
+        batch.map((chunk) =>
+          db.chunk.create({
+            data: {
+              sourceId,
+              content: chunk.content,
+              chunkNumber: chunk.metadata.chunkNumber,
+              pageNumber: chunk.metadata.pageNumber || null,
+              timestamp: chunk.metadata.timestamp || null,
+              title: chunk.metadata.title || null,
+              url: chunk.metadata.url || null,
+              metadata: chunk.metadata as object,
+            },
+          })
+        )
+      );
+      createdChunks.push(...batchResults);
+      log("STORE", `Batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(chunks.length / BATCH_SIZE)} saved (${batchResults.length} chunks)`);
+    }
 
     const storeDuration = Date.now() - storeStart;
-    log("STORE", `Chunks saved in ${storeDuration}ms`, { savedCount: createdChunks.length });
+    log("STORE", `All chunks saved in ${storeDuration}ms`, { savedCount: createdChunks.length });
 
-    // Step 5: Store embeddings in pgvector
+    // Step 5: Store embeddings in pgvector (batched)
     log("VECTOR", `Storing ${createdChunks.length} embeddings in pgvector`);
     const vectorStart = Date.now();
 
-    await storeChunkEmbeddings(
-      createdChunks.map((chunk, index) => ({
-        chunkId: chunk.id,
-        embedding: embeddings[index],
-      }))
-    );
+    for (let i = 0; i < createdChunks.length; i += BATCH_SIZE) {
+      const batch = createdChunks.slice(i, i + BATCH_SIZE);
+      await storeChunkEmbeddings(
+        batch.map((chunk, batchIdx) => ({
+          chunkId: chunk.id,
+          embedding: embeddings[i + batchIdx],
+        }))
+      );
+    }
 
     const vectorDuration = Date.now() - vectorStart;
     log("VECTOR", `Embeddings stored in ${vectorDuration}ms`);
