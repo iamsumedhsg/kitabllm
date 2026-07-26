@@ -33,6 +33,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    console.log(`[Upload] New source: type=${type}, filename="${filename}", url=${url || "N/A"}, notebookId=${notebookId}`);
+
     // Verify notebook ownership
     const notebook = await db.notebook.findFirst({
       where: { id: notebookId, userId: user.id },
@@ -56,6 +58,7 @@ export async function POST(req: NextRequest) {
       await mkdir(uploadsDir, { recursive: true });
       filePath = join(uploadsDir, `${Date.now()}-${filename}`);
       await writeFile(filePath, fileBuffer);
+      console.log(`[Upload] File saved: ${filePath} (${fileSize} bytes)`);
     }
 
     // Create source record
@@ -71,6 +74,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    console.log(`[Upload] Source record created: ${source.id} — starting background processing`);
+
     // Process in background (non-blocking)
     processSource({
       sourceId: source.id,
@@ -80,12 +85,12 @@ export async function POST(req: NextRequest) {
       buffer: fileBuffer || undefined,
       url: url || undefined,
     }).catch((error) => {
-      console.error(`[Background Processing] Source ${source.id}:`, error);
+      console.error(`[Upload] Background processing failed for source ${source.id}:`, error instanceof Error ? error.message : error);
     });
 
     return NextResponse.json(source, { status: 201 });
   } catch (error) {
-    console.error("[POST /api/sources/upload]", error);
+    console.error("[Upload] Request failed:", error instanceof Error ? error.message : error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

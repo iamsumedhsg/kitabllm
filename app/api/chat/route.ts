@@ -24,6 +24,8 @@ export async function POST(req: NextRequest) {
 
     const { notebookId, conversationId, message } = validated.data;
 
+    console.log(`[Chat] Incoming message: notebookId=${notebookId}, convId=${conversationId || "new"}, message="${message.slice(0, 100)}"`);
+
     const user = await db.user.findUnique({ where: { clerkId: userId } });
     if (!user) {
       return new Response("User not found", { status: 404 });
@@ -65,6 +67,7 @@ export async function POST(req: NextRequest) {
         try {
           // Send pipeline stage updates
           const sendStage = (stage: string, progress: number) => {
+            console.log(`[Chat] Stage: ${stage} (${progress}%)`);
             controller.enqueue(
               encoder.encode(
                 `data: ${JSON.stringify({ type: "stage", stage, progress })}\n\n`
@@ -75,7 +78,10 @@ export async function POST(req: NextRequest) {
           sendStage("DECOMPOSING", 10);
 
           // Run RAG pipeline
+          console.log(`[Chat] Running RAG pipeline for query: "${message.slice(0, 80)}..."`);
+          const ragStart = Date.now();
           const pipelineResult = await runRAGPipeline(message, notebookId);
+          console.log(`[Chat] RAG pipeline completed in ${Date.now() - ragStart}ms | chunks retrieved: ${pipelineResult.flatChunks.length}, groups: ${pipelineResult.topGroups.length}`);
 
           sendStage("STREAMING", 60);
 
@@ -137,10 +143,11 @@ export async function POST(req: NextRequest) {
           }
 
           sendStage("COMPLETE", 100);
+          console.log(`[Chat] Response complete | citations: ${citations.length}, responseLength: ${fullResponse.length}`);
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         } catch (error) {
-          console.error("[Chat Stream Error]", error);
+          console.error("[Chat] Stream error:", error instanceof Error ? error.message : error);
           controller.enqueue(
             encoder.encode(
               `data: ${JSON.stringify({ type: "error", message: "An error occurred" })}\n\n`
