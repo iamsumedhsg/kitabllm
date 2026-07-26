@@ -1,7 +1,5 @@
-import {
-  fetchTranscript,
-  type TranscriptResponse,
-} from "youtube-transcript";
+import { fetchTranscript, type TranscriptResponse } from "youtube-transcript";
+import { YouTubeTranscriptApi } from "youtube-transcript-api-js";
 
 export interface TranscriptSegment {
   text: string;
@@ -35,7 +33,7 @@ export function extractVideoId(url: string): string | null {
 }
 
 /**
- * Fetch title from YouTube oEmbed API (lightweight, no scraping needed)
+ * Fetch title from YouTube oEmbed API
  */
 async function fetchVideoTitle(videoId: string): Promise<string> {
   try {
@@ -53,52 +51,62 @@ async function fetchVideoTitle(videoId: string): Promise<string> {
 }
 
 /**
- * Try multiple strategies to fetch the transcript
+ * Strategy 1: youtube-transcript package (InnerTube API)
  */
-async function fetchTranscriptWithRetries(videoId: string): Promise<TranscriptResponse[]> {
-  const errors: string[] = [];
+async function tryYoutubeTranscript(videoId: string): Promise<TranscriptSegment[] | null> {
+  const attempts = [
+    () => fetchTranscript(videoId, { lang: "en" }),
+    () => fetchTranscript(videoId),
+    () => fetchTranscript(`https://www.youtube.com/watch?v=${videoId}`),
+  ];
 
-  // Strategy 1: Try with English language preference
-  try {
-    const result = await fetchTranscript(videoId, { lang: "en" });
-    if (result && result.length > 0) return result;
-  } catch (err: any) {
-    errors.push(`en: ${err.message || err}`);
+  for (const attempt of attempts) {
+    try {
+      const result = await attempt();
+      if (result && result.length > 0) {
+        return result.map((entry: TranscriptResponse) => ({
+          text: entry.text.trim(),
+          start: entry.offset / 1000,
+          duration: entry.duration / 1000,
+        })).filter((s: TranscriptSegment) => s.text.length > 0);
+      }
+    } catch {
+      // Try next
+    }
   }
-
-  // Strategy 2: Try without any language preference (gets auto-generated)
-  try {
-    const result = await fetchTranscript(videoId);
-    if (result && result.length > 0) return result;
-  } catch (err: any) {
-    errors.push(`no-lang: ${err.message || err}`);
-  }
-
-  // Strategy 3: Try with full URL format instead of just ID
-  try {
-    const result = await fetchTranscript(`https://www.youtube.com/watch?v=${videoId}`);
-    if (result && result.length > 0) return result;
-  } catch (err: any) {
-    errors.push(`full-url: ${err.message || err}`);
-  }
-
-  // Strategy 4: Try with 'auto' language hint
-  try {
-    const result = await fetchTranscript(videoId, { lang: "auto" });
-    if (result && result.length > 0) return result;
-  } catch (err: any) {
-    errors.push(`auto: ${err.message || err}`);
-  }
-
-  // All strategies failed
-  console.error(`[YouTube] All transcript strategies failed for ${videoId}:`, errors);
-  throw new Error(
-    `Could not fetch transcript for this video (${videoId}). The video may not have captions available, or YouTube is blocking the request. Consider uploading a VTT/subtitle file instead. Errors: ${errors.join(" | ")}`
-  );
+  return null;
 }
 
 /**
- * Extract YouTube transcript using multiple fallback strategies
+ * Strategy 2: youtube-transcript-api-js package (different extraction method)
+ */
+async function tryYoutubeTranscriptApi(videoId: string): Promise<TranscriptSegment[] | null> {
+  try {
+    const api = new YouTubeTranscriptApi();
+
+    // Try fetching with English preference, then without
+    let result;
+    try {
+      result = await api.fetch(videoId, ["en"]);
+    } catch {
+      result = await api.fetch(videoId);
+    }
+
+    if (!result || !result.snippets || result.snippets.length === 0) return null;
+
+    return result.snippets.map((entry: any) => ({
+      text: (entry.text || "").trim(),
+      start: entry.start || 0,
+      duration: entry.duration || 0,
+    })).filter((s: TranscriptSegment) => s.text.length > 0);
+  } catch (err: any) {
+    console.log(`[YouTube] youtube-transcript-api-js failed: ${err.message}`);
+    return null;
+  }
+}
+
+/**
+ * Extract YouTube transcript using multiple packages as fallbacks
  */
 export async function extractYouTubeTranscript(
   url: string
@@ -110,36 +118,28 @@ export async function extractYouTubeTranscript(
 
   console.log(`[YouTube] Extracting transcript for video: ${videoId}`);
 
-  // Fetch title and transcript in parallel
-  const [title, transcriptEntries] = await Promise.all([
-    fetchVideoTitle(videoId),
-    fetchTranscriptWithRetries(videoId),
-  ]);
+  // Fetch title in parallel with transcript attempts
+  const titlePromise = fetchVideoTitle(videoId);
 
-  if (!transcriptEntries || transcriptEntries.length === 0) {
+  // Try Strategy 1: youtube-transcript (InnerTube)
+  let segments = await tryYoutubeTranscript(videoId);
+
+  // Try Strategy 2: youtube-transcript-api-js (different method)
+  if (!segments) {
+    console.log(`[YouTube] Strategy 1 failed, trying youtube-transcript-api-js...`);
+    segments = await tryYoutubeTranscriptApi(videoId);
+  }
+
+  if (!segments || segments.length === 0) {
     throw new Error(
-      "Transcript is empty for this video. Consider uploading a VTT/subtitle file instead."
+      `Could not fetch transcript for video ${videoId}. YouTube may be blocking server requests, or the video has no captions. Try uploading a VTT/subtitle file instead.`
     );
   }
 
-  console.log(`[YouTube] Got ${transcriptEntries.length} transcript entries for "${title}"`);
-
-  // Convert to our segment format
-  const segments: TranscriptSegment[] = transcriptEntries
-    .map((entry: TranscriptResponse) => ({
-      text: entry.text.trim(),
-      start: entry.offset / 1000, // offset is in ms, convert to seconds
-      duration: entry.duration / 1000,
-    }))
-    .filter((s) => s.text.length > 0);
-
+  const title = await titlePromise;
   const fullText = segments.map((s) => s.text).join(" ");
 
-  if (!fullText.trim()) {
-    throw new Error(
-      "Transcript content is empty after processing. Consider uploading a VTT/subtitle file instead."
-    );
-  }
+  console.log(`[YouTube] Got ${segments.length} segments for "${title}" (${fullText.length} chars)`);
 
   return {
     title,
