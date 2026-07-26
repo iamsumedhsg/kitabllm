@@ -16,11 +16,13 @@ interface VectorSearchResult {
 
 /**
  * Search chunks by page number (for "what's on page X" queries)
+ * Also includes adjacent pages for context when the target page has little content
  */
 export async function pageSearch(
   notebookId: string,
   pageNumber: number
 ): Promise<VectorSearchResult[]> {
+  // First try exact page
   const results = await db.$queryRawUnsafe<VectorSearchResult[]>(
     `
     SELECT 
@@ -44,6 +46,40 @@ export async function pageSearch(
     notebookId,
     pageNumber
   );
+
+  // If the page has very little content (<200 chars total), include adjacent pages for context
+  const totalContent = results.reduce((sum: number, r: VectorSearchResult) => sum + r.content.length, 0);
+  if (totalContent < 200) {
+    const adjacentResults = await db.$queryRawUnsafe<VectorSearchResult[]>(
+      `
+      SELECT 
+        c.id,
+        c."sourceId",
+        c.content,
+        c."chunkNumber",
+        c."pageNumber",
+        c.timestamp,
+        c.title,
+        c.url,
+        c.metadata,
+        0.9 as similarity
+      FROM "Chunk" c
+      INNER JOIN "Source" s ON c."sourceId" = s.id
+      WHERE s."notebookId" = $1
+        AND s.status = 'READY'
+        AND c."pageNumber" IN ($2, $3)
+        AND c.id NOT IN (SELECT unnest($4::text[]))
+      ORDER BY c."pageNumber" ASC, c."chunkNumber" ASC
+      LIMIT 8
+      `,
+      notebookId,
+      pageNumber - 1,
+      pageNumber + 1,
+      results.map((r: VectorSearchResult) => r.id)
+    );
+    return [...results, ...adjacentResults];
+  }
+
   return results;
 }
 
