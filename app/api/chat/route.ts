@@ -65,6 +65,15 @@ export async function POST(req: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          // Send conversation ID to client if newly created
+          if (!conversationId) {
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ type: "conversationId", conversationId: convId })}\n\n`
+              )
+            );
+          }
+
           // Send pipeline stage updates
           const sendStage = (stage: string, progress: number) => {
             console.log(`[Chat] Stage: ${stage} (${progress}%)`);

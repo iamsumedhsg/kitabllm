@@ -1,27 +1,68 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useChatStore } from "@/store/chat-store";
 import type { Message, Citation } from "@/types";
 
 interface UseChatOptions {
   notebookId: string;
-  conversationId?: string;
 }
 
-export function useChat({ notebookId, conversationId }: UseChatOptions) {
+export function useChat({ notebookId }: UseChatOptions) {
   const [error, setError] = useState<string | null>(null);
   const {
     messages,
+    activeConversationId,
     isStreaming,
     streamContent,
     pipelineState,
+    setMessages,
+    setActiveConversation,
     addMessage,
     setStreaming,
     setStreamContent,
     appendStreamContent,
     setPipelineState,
   } = useChatStore();
+
+  // Load the most recent conversation for this notebook on mount
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadConversation() {
+      try {
+        // Fetch conversations for this notebook
+        const res = await fetch(`/api/chat/history?notebookId=${notebookId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (cancelled) return;
+
+        if (data.conversation && data.messages) {
+          setActiveConversation(data.conversation.id);
+          setMessages(
+            data.messages.map((m: any) => ({
+              id: m.id,
+              conversationId: m.conversationId,
+              role: m.role,
+              content: m.content,
+              citations: m.citations || [],
+              createdAt: new Date(m.createdAt),
+            }))
+          );
+        } else {
+          // No existing conversation
+          setActiveConversation(null);
+          setMessages([]);
+        }
+      } catch {
+        // Silently fail — user can still start a new conversation
+      }
+    }
+
+    loadConversation();
+    return () => { cancelled = true; };
+  }, [notebookId, setActiveConversation, setMessages]);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -33,7 +74,7 @@ export function useChat({ notebookId, conversationId }: UseChatOptions) {
       // Add user message immediately (optimistic)
       const userMessage: Message = {
         id: `temp-${Date.now()}`,
-        conversationId: conversationId || "",
+        conversationId: activeConversationId || "",
         role: "USER",
         content,
         createdAt: new Date(),
@@ -46,7 +87,7 @@ export function useChat({ notebookId, conversationId }: UseChatOptions) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             notebookId,
-            conversationId,
+            conversationId: activeConversationId,
             message: content,
           }),
         });
@@ -88,6 +129,9 @@ export function useChat({ notebookId, conversationId }: UseChatOptions) {
                     stage: parsed.stage,
                     progress: parsed.progress,
                   });
+                } else if (parsed.type === "conversationId") {
+                  // Server created a new conversation — track it
+                  setActiveConversation(parsed.conversationId);
                 }
               } catch {
                 // Plain text chunk
@@ -101,7 +145,7 @@ export function useChat({ notebookId, conversationId }: UseChatOptions) {
         // Add the complete assistant message
         const assistantMessage: Message = {
           id: `temp-${Date.now()}-assistant`,
-          conversationId: conversationId || "",
+          conversationId: activeConversationId || "",
           role: "ASSISTANT",
           content: fullResponse,
           citations,
@@ -123,8 +167,9 @@ export function useChat({ notebookId, conversationId }: UseChatOptions) {
     },
     [
       notebookId,
-      conversationId,
+      activeConversationId,
       addMessage,
+      setActiveConversation,
       setStreaming,
       setStreamContent,
       appendStreamContent,

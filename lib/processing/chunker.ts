@@ -25,6 +25,7 @@ const textSplitter = new RecursiveCharacterTextSplitter({
  * Format seconds to MM:SS or HH:MM:SS
  */
 function formatSeconds(seconds: number): string {
+  if (!isFinite(seconds) || seconds < 0) seconds = 0;
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = Math.floor(seconds % 60);
@@ -79,7 +80,7 @@ export async function chunkTextWithPages(
 
 /**
  * Split transcript segments into chunks that preserve timestamp ranges.
- * Groups segments into ~1000 char chunks and records the start/end timestamps.
+ * Groups consecutive segments until ~1000 chars, recording exact start/end timestamps.
  */
 export interface TranscriptSegment {
   text: string;
@@ -92,54 +93,39 @@ export async function chunkTranscript(
   baseMetadata: Omit<ChunkMetadata, "chunkNumber" | "timestamp">
 ): Promise<ProcessedChunk[]> {
   const chunks: ProcessedChunk[] = [];
-  let currentText = "";
-  let currentStart = 0;
-  let currentEnd = 0;
   let chunkNumber = 1;
 
-  for (const segment of segments) {
+  let currentText = "";
+  let chunkStartTime = 0;
+  let chunkEndTime = 0;
+
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i];
     const segEnd = segment.start + segment.duration;
 
+    // Start a new chunk
     if (currentText.length === 0) {
-      currentStart = segment.start;
+      chunkStartTime = segment.start;
     }
 
     currentText += (currentText ? " " : "") + segment.text;
-    currentEnd = segEnd;
+    chunkEndTime = segEnd;
 
-    // If accumulated text exceeds chunk size, save it
-    if (currentText.length >= 800) {
-      chunks.push({
-        content: currentText.trim(),
-        metadata: {
-          ...baseMetadata,
-          chunkNumber: chunkNumber++,
-          timestamp: `${formatSeconds(currentStart)}-${formatSeconds(currentEnd)}`,
-        },
-      });
-      // Keep overlap: start next chunk from ~200 chars back
-      const overlapPoint = currentText.lastIndexOf(" ", currentText.length - 200);
-      if (overlapPoint > 0) {
-        currentText = currentText.slice(overlapPoint).trim();
-        // Approximate the start time for the overlap portion
-        const ratio = overlapPoint / currentText.length;
-        currentStart = currentStart + (currentEnd - currentStart) * ratio;
-      } else {
-        currentText = "";
+    // Flush when we hit the target size or it's the last segment
+    if (currentText.length >= 800 || i === segments.length - 1) {
+      if (currentText.trim().length > 0) {
+        chunks.push({
+          content: currentText.trim(),
+          metadata: {
+            ...baseMetadata,
+            chunkNumber: chunkNumber++,
+            timestamp: `${formatSeconds(chunkStartTime)}-${formatSeconds(chunkEndTime)}`,
+          },
+        });
       }
+      // Reset — no overlap needed for transcripts since timestamps are the anchor
+      currentText = "";
     }
-  }
-
-  // Don't forget the last chunk
-  if (currentText.trim().length > 0) {
-    chunks.push({
-      content: currentText.trim(),
-      metadata: {
-        ...baseMetadata,
-        chunkNumber: chunkNumber++,
-        timestamp: `${formatSeconds(currentStart)}-${formatSeconds(currentEnd)}`,
-      },
-    });
   }
 
   return chunks;
