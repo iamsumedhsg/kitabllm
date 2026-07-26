@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useMemo } from "react";
 import { useChat } from "@/hooks/use-chat";
+import { useChatStore } from "@/store/chat-store";
 import { ChatInput } from "./chat-input";
 import { ChatMessage } from "./chat-message";
 import { FollowUpSuggestions } from "./follow-up-suggestions";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Plus } from "lucide-react";
 
 interface ChatWindowProps {
   notebookId: string;
@@ -15,11 +16,18 @@ interface ChatWindowProps {
 export function ChatWindow({ notebookId, notebookTitle }: ChatWindowProps) {
   const { messages, isStreaming, streamContent, pipelineState, sendMessage, stopGeneration } =
     useChat({ notebookId });
+  const setMessages = useChatStore((s) => s.setMessages);
+  const setActiveConversation = useChatStore((s) => s.setActiveConversation);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamContent]);
+
+  const handleNewChat = () => {
+    setMessages([]);
+    setActiveConversation(null);
+  };
 
   // Get last user message and assistant response for follow-up suggestions
   const lastExchange = useMemo(() => {
@@ -32,6 +40,19 @@ export function ChatWindow({ notebookId, notebookTitle }: ChatWindowProps) {
 
   return (
     <div className="flex flex-col h-full">
+      {/* New Chat button when there are messages */}
+      {messages.length > 0 && !isStreaming && (
+        <div className="flex justify-end px-4 pt-2">
+          <button
+            onClick={handleNewChat}
+            className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New Chat
+          </button>
+        </div>
+      )}
+
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto px-6 py-4">
         {messages.length === 0 && !isStreaming ? (
