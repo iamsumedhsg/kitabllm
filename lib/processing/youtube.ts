@@ -1,3 +1,10 @@
+import {
+  fetchTranscript,
+  YoutubeTranscriptDisabledError,
+  YoutubeTranscriptNotAvailableError,
+  type TranscriptResponse,
+} from "youtube-transcript";
+
 export interface TranscriptSegment {
   text: string;
   start: number; // seconds
@@ -30,76 +37,77 @@ export function extractVideoId(url: string): string | null {
 }
 
 /**
- * Fetch YouTube transcript using the innertube API approach
+ * Fetch title from YouTube oEmbed API (lightweight, no scraping needed)
+ */
+async function fetchVideoTitle(videoId: string): Promise<string> {
+  try {
+    const response = await fetch(
+      `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
+    );
+    if (response.ok) {
+      const data = await response.json();
+      return data.title || `YouTube Video ${videoId}`;
+    }
+  } catch {
+    // Fallback silently
+  }
+  return `YouTube Video ${videoId}`;
+}
+
+/**
+ * Extract YouTube transcript using the youtube-transcript package
+ * Uses InnerTube API (Android client) with web page fallback
  */
 export async function extractYouTubeTranscript(
   url: string
 ): Promise<YouTubeExtractionResult> {
   const videoId = extractVideoId(url);
   if (!videoId) {
-    throw new Error("Invalid YouTube URL");
+    throw new Error("Invalid YouTube URL. Supported formats: youtube.com/watch?v=..., youtu.be/..., youtube.com/shorts/...");
   }
 
-  // Fetch the watch page to get the title and caption tracks
-  const watchResponse = await fetch(
-    `https://www.youtube.com/watch?v=${videoId}`,
-    {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      },
-    }
-  );
+  // Fetch title and transcript in parallel
+  const [title, transcriptEntries] = await Promise.all([
+    fetchVideoTitle(videoId),
+    fetchTranscript(videoId, { lang: "en" }).catch(async (err) => {
+      // If English not available, try without language preference
+      if (err instanceof YoutubeTranscriptNotAvailableError) {
+        throw new Error(
+          `No transcript available for this video (${videoId}). Consider uploading a VTT/subtitle file instead.`
+        );
+      }
+      if (err instanceof YoutubeTranscriptDisabledError) {
+        throw new Error(
+          `Transcripts are disabled for this video (${videoId}). Consider uploading a VTT/subtitle file instead.`
+        );
+      }
+      // Try without language filter as fallback
+      return fetchTranscript(videoId);
+    }),
+  ]);
 
-  const watchHtml = await watchResponse.text();
-
-  // Extract title
-  const titleMatch = watchHtml.match(/<title>(.+?)<\/title>/);
-  const title = titleMatch
-    ? titleMatch[1].replace(" - YouTube", "").trim()
-    : `YouTube Video ${videoId}`;
-
-  // Try to find captions URL from the page data
-  const captionMatch = watchHtml.match(
-    /"captionTracks":\[.*?"baseUrl":"([^"]+)"/
-  );
-
-  if (!captionMatch) {
+  if (!transcriptEntries || transcriptEntries.length === 0) {
     throw new Error(
-      "No transcript available for this video. Consider uploading a VTT file instead."
+      "Transcript is empty for this video. Consider uploading a VTT/subtitle file instead."
     );
   }
 
-  const captionUrl = captionMatch[1].replace(/\\u0026/g, "&");
-  const captionResponse = await fetch(captionUrl);
-  const captionXml = await captionResponse.text();
-
-  // Parse the XML transcript
-  const segments: TranscriptSegment[] = [];
-  const textRegex =
-    /<text start="([^"]+)" dur="([^"]+)"[^>]*>([^<]*)<\/text>/g;
-  let match;
-
-  while ((match = textRegex.exec(captionXml)) !== null) {
-    const text = match[3]
-      .replace(/&amp;/g, "&")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/\n/g, " ")
-      .trim();
-
-    if (text) {
-      segments.push({
-        text,
-        start: parseFloat(match[1]),
-        duration: parseFloat(match[2]),
-      });
-    }
-  }
+  // Convert to our segment format
+  const segments: TranscriptSegment[] = transcriptEntries
+    .map((entry: TranscriptResponse) => ({
+      text: entry.text.trim(),
+      start: entry.offset / 1000, // offset is in ms, convert to seconds
+      duration: entry.duration / 1000,
+    }))
+    .filter((s) => s.text.length > 0);
 
   const fullText = segments.map((s) => s.text).join(" ");
+
+  if (!fullText.trim()) {
+    throw new Error(
+      "Transcript content is empty after processing. Consider uploading a VTT/subtitle file instead."
+    );
+  }
 
   return {
     title,
