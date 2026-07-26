@@ -1,0 +1,137 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [vector]
+}
+
+model User {
+  id        String     @id @default(cuid())
+  clerkId   String     @unique
+  email     String     @unique
+  name      String?
+  imageUrl  String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  notebooks Notebook[]
+}
+
+model Notebook {
+  id            String         @id @default(cuid())
+  title         String
+  description   String?
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sources       Source[]
+  conversations Conversation[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([userId])
+}
+
+model Source {
+  id         String       @id @default(cuid())
+  notebookId String
+  notebook   Notebook     @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  filename   String
+  type       SourceType
+  size       Int          @default(0)
+  url        String?
+  filePath   String?
+  status     SourceStatus @default(UPLOADING)
+  metadata   Json?
+  chunks     Chunk[]
+  citations  Citation[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@index([notebookId])
+  @@index([status])
+}
+
+model Chunk {
+  id          String   @id @default(cuid())
+  sourceId    String
+  source      Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  content     String
+  chunkNumber Int
+  pageNumber  Int?
+  timestamp   String?
+  title       String?
+  url         String?
+  metadata    Json?
+  embedding   Unsupported("vector(1536)")?
+  citations   Citation[]
+  createdAt   DateTime @default(now())
+
+  @@index([sourceId])
+}
+
+model Conversation {
+  id         String    @id @default(cuid())
+  notebookId String
+  notebook   Notebook  @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  title      String?
+  messages   Message[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([notebookId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           MessageRole
+  content        String
+  citations      Citation[]
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+}
+
+model Citation {
+  id         String   @id @default(cuid())
+  messageId  String
+  message    Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  sourceId   String
+  source     Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  chunkId    String
+  chunk      Chunk    @relation(fields: [chunkId], references: [id], onDelete: Cascade)
+  pageNumber Int?
+  timestamp  String?
+  confidence Float?
+  excerpt    String?
+  createdAt  DateTime @default(now())
+
+  @@index([messageId])
+  @@index([sourceId])
+  @@index([chunkId])
+}
+
+enum SourceType {
+  PDF
+  TEXT
+  WEBSITE
+  YOUTUBE
+  VTT
+}
+
+enum SourceStatus {
+  UPLOADING
+  INDEXING
+  READY
+  FAILED
+  REMOVING
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
