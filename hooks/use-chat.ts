@@ -93,7 +93,7 @@ export function useChat({ notebookId }: UseChatOptions) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             notebookId,
-            conversationId: activeConversationId,
+            ...(activeConversationId ? { conversationId: activeConversationId } : {}),
             message: content,
           }),
         });

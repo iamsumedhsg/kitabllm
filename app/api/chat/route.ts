@@ -22,7 +22,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const { notebookId, conversationId, message } = validated.data;
+    const { notebookId, conversationId: rawConvId, message } = validated.data;
+    const conversationId = rawConvId || undefined; // normalize null to undefined
 
     console.log(`[Chat] Incoming message: notebookId=${notebookId}, convId=${conversationId || "new"}, message="${message.slice(0, 100)}"`);
 
