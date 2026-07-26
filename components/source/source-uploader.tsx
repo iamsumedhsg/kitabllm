@@ -54,46 +54,99 @@ export function SourceUploader({ notebookId, onClose }: SourceUploaderProps) {
     if (!url.trim()) return;
     setError(null);
 
-    // For YouTube: first try to fetch transcript from the browser (bypasses IP blocks)
+    // For YouTube: fetch transcript client-side via browser (residential IP)
     if (activeTab === "YOUTUBE") {
       setIsFetchingTranscript(true);
       try {
-        // Attempt to get transcript via browser → server proxy
-        const transcriptRes = await fetch("/api/youtube/transcript", {
+        // Extract video ID
+        const videoIdMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?\s]+)/);
+        const videoId = videoIdMatch?.[1];
+        if (!videoId) throw new Error("Invalid YouTube URL");
+
+        // Fetch transcript using browser's IP via public transcript proxy
+        // This bypasses Render's data center IP block
+        let transcriptText = "";
+        let videoTitle = "";
+
+        // Try fetching via our server first (works if server IP isn't blocked)
+        const serverRes = await fetch("/api/youtube/transcript", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url: url.trim() }),
         });
 
-        if (transcriptRes.ok) {
-          const data = await transcriptRes.json();
-          // Send transcript content directly to server for processing
-          const formData = new FormData();
-          formData.append("notebookId", notebookId);
-          formData.append("type", "YOUTUBE");
-          formData.append("url", url.trim());
-          formData.append("content", data.fullText);
-          formData.append("filename", filename.trim() || data.title || "YouTube Video");
-          formData.append("metadata", JSON.stringify({
-            videoId: data.videoId,
-            title: data.title,
-            segmentCount: data.segmentCount,
-            transcriptSource: "server",
-          }));
+        if (serverRes.ok) {
+          const data = await serverRes.json();
+          transcriptText = data.fullText;
+          videoTitle = data.title;
+        } else {
+          // Server blocked — try client-side fetch via cors-anywhere style proxy
+          // Use multiple public transcript APIs as fallback
+          const proxyUrls = [
+            `https://yt-transcript-api.vercel.app/api?videoId=${videoId}`,
+            `https://youtube-transcriptor.p.rapidapi.com/transcript?video_id=${videoId}&lang=en`,
+          ];
 
-          await uploadSource.mutateAsync(formData);
-          onClose();
+          for (const proxyUrl of proxyUrls) {
+            try {
+              const res = await fetch(proxyUrl);
+              if (res.ok) {
+                const data = await res.json();
+                // Handle different response formats
+                if (Array.isArray(data)) {
+                  transcriptText = data.map((s: any) => s.text || s.content || "").join(" ");
+                } else if (data.transcript) {
+                  transcriptText = Array.isArray(data.transcript)
+                    ? data.transcript.map((s: any) => s.text || "").join(" ")
+                    : data.transcript;
+                } else if (data.text) {
+                  transcriptText = data.text;
+                }
+                if (transcriptText) break;
+              }
+            } catch {
+              continue;
+            }
+          }
+
+          // Get title via oEmbed (this always works from browser)
+          try {
+            const oembedRes = await fetch(
+              `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
+            );
+            if (oembedRes.ok) {
+              const oembedData = await oembedRes.json();
+              videoTitle = oembedData.title;
+            }
+          } catch { /* use fallback */ }
+        }
+
+        if (!transcriptText) {
+          setError("Could not fetch transcript. YouTube may be blocking requests. Try downloading the subtitles as a VTT file and uploading that instead.");
+          setIsFetchingTranscript(false);
           return;
         }
-      } catch {
-        // Server-side transcript fetch failed, fall through to normal upload
-        console.log("[Upload] Server transcript fetch failed, trying direct upload...");
+
+        // Send pre-fetched transcript to server
+        const formData = new FormData();
+        formData.append("notebookId", notebookId);
+        formData.append("type", "YOUTUBE");
+        formData.append("url", url.trim());
+        formData.append("content", transcriptText);
+        formData.append("filename", filename.trim() || videoTitle || `YouTube ${videoId}`);
+
+        await uploadSource.mutateAsync(formData);
+        onClose();
+        return;
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch YouTube transcript");
       } finally {
         setIsFetchingTranscript(false);
       }
+      return;
     }
 
-    // Normal URL upload (server will attempt to fetch transcript)
+    // Normal URL upload for WEBSITE type
     const formData = new FormData();
     formData.append("notebookId", notebookId);
     formData.append("type", activeTab);
@@ -249,11 +302,14 @@ export function SourceUploader({ notebookId, onClose }: SourceUploaderProps) {
             </div>
             <button
               onClick={handleUrlSubmit}
-              disabled={!url.trim() || uploadSource.isPending}
+              disabled={!url.trim() || uploadSource.isPending || isFetchingTranscript}
               className="w-full rounded-lg bg-primary py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
-              {uploadSource.isPending ? "Adding..." : "Add Source"}
+              {isFetchingTranscript ? "Fetching transcript..." : uploadSource.isPending ? "Adding..." : "Add Source"}
             </button>
+            {error && (
+              <p className="text-xs text-destructive mt-2">{error}</p>
+            )}
           </div>
         )}
 
