@@ -12,6 +12,7 @@ export function useChat({ notebookId }: UseChatOptions) {
   const [error, setError] = useState<string | null>(null);
   const hasLoadedRef = useRef(false);
   const isStreamingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const messages = useChatStore((s) => s.messages);
   const activeConversationId = useChatStore((s) => s.activeConversationId);
@@ -31,7 +32,7 @@ export function useChat({ notebookId }: UseChatOptions) {
     isStreamingRef.current = isStreaming;
   }, [isStreaming]);
 
-  // Load the most recent conversation for this notebook on mount ONLY
+  // Load the most recent conversation on mount ONLY
   useEffect(() => {
     if (hasLoadedRef.current) return;
     hasLoadedRef.current = true;
@@ -42,7 +43,6 @@ export function useChat({ notebookId }: UseChatOptions) {
         if (!res.ok) return;
         const data = await res.json();
 
-        // Don't overwrite if user already started streaming
         if (isStreamingRef.current) return;
 
         if (data.conversation && data.messages && data.messages.length > 0) {
@@ -75,12 +75,19 @@ export function useChat({ notebookId }: UseChatOptions) {
       setError(null);
       setStreaming(true);
       setStreamContent("");
-      setPipelineState({ stage: "DECOMPOSING", progress: 10 });
+      setPipelineState({ stage: "DECOMPOSING", progress: 0 });
+
+      // Create abort controller for this request
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
+      // Track conversation ID locally (may be updated mid-stream)
+      let currentConvId = useChatStore.getState().activeConversationId;
 
       // Add user message immediately (optimistic)
       const userMessage: Message = {
         id: `temp-${Date.now()}`,
-        conversationId: activeConversationId || "",
+        conversationId: currentConvId || "",
         role: "USER",
         content,
         createdAt: new Date(),
@@ -93,9 +100,10 @@ export function useChat({ notebookId }: UseChatOptions) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             notebookId,
-            ...(activeConversationId ? { conversationId: activeConversationId } : {}),
+            ...(currentConvId ? { conversationId: currentConvId } : {}),
             message: content,
           }),
+          signal: abortController.signal,
         });
 
         if (!response.ok) {
@@ -109,16 +117,22 @@ export function useChat({ notebookId }: UseChatOptions) {
         const decoder = new TextDecoder();
         let fullResponse = "";
         let citations: Citation[] = [];
+        let buffer = ""; // Buffer for partial SSE lines
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          const text = decoder.decode(value, { stream: true });
-          const lines = text.split("\n");
+          buffer += decoder.decode(value, { stream: true });
 
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
+          // Process complete SSE events (delimited by \n\n)
+          const events = buffer.split("\n\n");
+          buffer = events.pop() || ""; // Keep incomplete last event in buffer
+
+          for (const event of events) {
+            const lines = event.split("\n");
+            for (const line of lines) {
+              if (!line.startsWith("data: ")) continue;
               const data = line.slice(6);
               if (data === "[DONE]") continue;
 
@@ -135,23 +149,30 @@ export function useChat({ notebookId }: UseChatOptions) {
                     progress: parsed.progress,
                   });
                 } else if (parsed.type === "conversationId") {
+                  currentConvId = parsed.conversationId;
                   setActiveConversation(parsed.conversationId);
+                } else if (parsed.type === "error") {
+                  throw new Error(parsed.message || "An error occurred");
                 }
-              } catch {
-                // Non-JSON data chunk
-                if (data.trim()) {
-                  fullResponse += data;
-                  appendStreamContent(data);
+              } catch (parseErr) {
+                // If it's a thrown error from above, re-throw
+                if (parseErr instanceof Error && parseErr.message !== "An error occurred") {
+                  if (data.startsWith("{")) {
+                    // It was a JSON parse error on valid-looking data, skip
+                  } else {
+                    throw parseErr;
+                  }
                 }
               }
             }
           }
         }
 
-        // Add the complete assistant message
+        // Clear stream content and add final message
+        setStreamContent("");
         const assistantMessage: Message = {
           id: `temp-${Date.now()}-assistant`,
-          conversationId: activeConversationId || "",
+          conversationId: currentConvId || "",
           role: "ASSISTANT",
           content: fullResponse,
           citations,
@@ -161,19 +182,21 @@ export function useChat({ notebookId }: UseChatOptions) {
 
         setPipelineState({ stage: "COMPLETE", progress: 100 });
       } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-        setPipelineState({
-          stage: "ERROR",
-          progress: 0,
-          error: err instanceof Error ? err.message : "Unknown error",
-        });
+        if (err instanceof Error && err.name === "AbortError") {
+          // User cancelled — no error to show
+          setPipelineState({ stage: "IDLE", progress: 0 });
+        } else {
+          setError(err instanceof Error ? err.message : "An error occurred");
+          setPipelineState({ stage: "ERROR", progress: 0 });
+        }
       } finally {
         setStreaming(false);
+        setStreamContent("");
+        abortControllerRef.current = null;
       }
     },
     [
       notebookId,
-      activeConversationId,
       addMessage,
       setActiveConversation,
       setStreaming,
@@ -184,9 +207,12 @@ export function useChat({ notebookId }: UseChatOptions) {
   );
 
   const stopGeneration = useCallback(() => {
+    // Actually abort the fetch
+    abortControllerRef.current?.abort();
     setStreaming(false);
-    setPipelineState({ stage: "COMPLETE", progress: 100 });
-  }, [setStreaming, setPipelineState]);
+    setStreamContent("");
+    setPipelineState({ stage: "IDLE", progress: 0 });
+  }, [setStreaming, setStreamContent, setPipelineState]);
 
   return {
     messages,

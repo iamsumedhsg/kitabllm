@@ -264,17 +264,21 @@ export async function processSource(options: ProcessSourceOptions) {
     const totalDuration = Date.now() - startTime;
     logError("FAILED", `Source ${sourceId} (${type}) failed after ${totalDuration}ms`, error);
 
-    // Update status to FAILED
-    await db.source.update({
-      where: { id: sourceId },
-      data: {
-        status: "FAILED",
-        metadata: {
-          error: error instanceof Error ? error.message : "Unknown error",
-          failedAt: new Date().toISOString(),
+    // Update status to FAILED (wrapped in try/catch to prevent masking original error)
+    try {
+      await db.source.update({
+        where: { id: sourceId },
+        data: {
+          status: "FAILED",
+          metadata: {
+            error: error instanceof Error ? error.message : "Unknown error",
+            failedAt: new Date().toISOString(),
+          },
         },
-      },
-    });
+      });
+    } catch (dbError) {
+      logError("FAILED", `Could not update source status to FAILED`, dbError);
+    }
 
     throw error;
   }

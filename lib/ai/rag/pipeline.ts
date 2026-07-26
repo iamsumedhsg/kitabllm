@@ -126,13 +126,18 @@ async function runSemanticPipeline(
     hydeDocument,
   };
 
-  // Step 5: Multi-query retrieval (parallel)
-  const retrievalResults = await Promise.all([
+  // Step 5: Multi-query retrieval (parallel, fault-tolerant)
+  const retrievalSettled = await Promise.allSettled([
     mmrSearch(rewrittenQuery, notebookId, 8),
     vectorSearch(stepBackQuery, notebookId, 5),
     vectorSearch(hydeDocument, notebookId, 5),
     ...subQueries.map((sq) => vectorSearch(sq, notebookId, 4)),
   ]);
+
+  // Filter out failed searches
+  const retrievalResults = retrievalSettled
+    .filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof vectorSearch>>> => r.status === "fulfilled")
+    .map((r) => r.value);
 
   // Fetch source info for all results
   const allSourceIds = new Set<string>();

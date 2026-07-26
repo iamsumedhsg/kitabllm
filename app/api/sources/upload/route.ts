@@ -56,7 +56,9 @@ export async function POST(req: NextRequest) {
       // Save file to uploads directory
       const uploadsDir = join(process.cwd(), "uploads", notebookId);
       await mkdir(uploadsDir, { recursive: true });
-      filePath = join(uploadsDir, `${Date.now()}-${filename}`);
+      // Sanitize filename to prevent path traversal
+      const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+      filePath = join(uploadsDir, `${Date.now()}-${safeFilename}`);
       await writeFile(filePath, fileBuffer);
       console.log(`[Upload] File saved: ${filePath} (${fileSize} bytes)`);
     }

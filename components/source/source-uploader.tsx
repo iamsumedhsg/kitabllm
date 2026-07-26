@@ -55,13 +55,17 @@ export function SourceUploader({ notebookId, onClose }: SourceUploaderProps) {
     formData.append("notebookId", notebookId);
     formData.append("type", activeTab);
     formData.append("url", url.trim());
-    formData.append(
-      "filename",
-      filename.trim() || new URL(url).hostname
-    );
 
-    await uploadSource.mutateAsync(formData);
-    onClose();
+    let hostName = "source";
+    try { hostName = new URL(url.trim()).hostname; } catch { /* keep default */ }
+    formData.append("filename", filename.trim() || hostName);
+
+    try {
+      await uploadSource.mutateAsync(formData);
+      onClose();
+    } catch {
+      // Error shown via uploadSource.error
+    }
   };
 
   const handleTextSubmit = async () => {
@@ -73,8 +77,12 @@ export function SourceUploader({ notebookId, onClose }: SourceUploaderProps) {
     formData.append("content", textContent.trim());
     formData.append("filename", filename.trim() || "Untitled");
 
-    await uploadSource.mutateAsync(formData);
-    onClose();
+    try {
+      await uploadSource.mutateAsync(formData);
+      onClose();
+    } catch {
+      // Error shown via uploadSource.error
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
