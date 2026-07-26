@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { readFile } from "fs/promises";
+import { readFile, access } from "fs/promises";
 
 // GET /api/sources/:id/content - Get source file content
 export async function GET(
@@ -33,6 +33,16 @@ export async function GET(
     if (!source.filePath) {
       return NextResponse.json(
         { error: "No file content available" },
+        { status: 404 }
+      );
+    }
+
+    // Check if file exists before reading
+    try {
+      await access(source.filePath);
+    } catch {
+      return NextResponse.json(
+        { error: "File not found on this server. The file may have been uploaded on a different instance." },
         { status: 404 }
       );
     }
