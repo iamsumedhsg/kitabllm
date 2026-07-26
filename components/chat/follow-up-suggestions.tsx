@@ -55,14 +55,17 @@ export function FollowUpSuggestions({
   if (!show || isLoading || suggestions.length === 0) return null;
 
   return (
-    <div className="flex items-start gap-2 pt-2">
-      <Lightbulb className="h-3.5 w-3.5 text-muted-foreground mt-1.5 flex-shrink-0" />
-      <div className="flex gap-2 overflow-x-auto pb-1">
+    <div className="flex flex-col gap-2 pt-2">
+      <div className="flex items-center gap-2">
+        <Lightbulb className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+        <span className="text-xs text-muted-foreground font-medium">Follow-up questions</span>
+      </div>
+      <div className="flex flex-col gap-1.5">
         {suggestions.map((suggestion, i) => (
           <button
             key={i}
             onClick={() => onSelect(suggestion)}
-            className="flex-shrink-0 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground hover:border-ring/30 transition-all whitespace-nowrap"
+            className="text-left rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground hover:border-ring/30 transition-all"
           >
             {suggestion}
           </button>
