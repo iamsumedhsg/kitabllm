@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { generateEmbeddings } from "@/lib/ai/embeddings";
-import { chunkText, chunkTextWithPages } from "./chunker";
+import { chunkText, chunkTextWithPages, chunkTranscript } from "./chunker";
 import { extractPDF } from "./pdf";
 import { extractWebsite } from "./website";
 import { extractYouTubeTranscript } from "./youtube";
@@ -53,6 +53,7 @@ export async function processSource(options: ProcessSourceOptions) {
     // Step 1: Extract content based on type
     let extractedText = "";
     let pages: { text: string; pageNumber: number }[] | null = null;
+    let transcriptSegments: { text: string; start: number; duration: number }[] | null = null;
     let metadata: Record<string, unknown> = {};
 
     log("EXTRACT", `Starting content extraction for type: ${type}`);
@@ -97,6 +98,7 @@ export async function processSource(options: ProcessSourceOptions) {
         log("EXTRACT", `Fetching YouTube transcript`, { url });
         const ytResult = await extractYouTubeTranscript(url);
         extractedText = ytResult.fullText;
+        transcriptSegments = ytResult.transcript;
         metadata = {
           title: ytResult.title,
           videoId: ytResult.videoId,
@@ -150,13 +152,18 @@ export async function processSource(options: ProcessSourceOptions) {
     }
 
     // Step 2: Chunk the content
-    log("CHUNK", `Starting chunking`, { textLength: extractedText.length, hasPages: !!pages });
+    log("CHUNK", `Starting chunking`, { textLength: extractedText.length, hasPages: !!pages, hasTranscript: !!transcriptSegments });
     const chunkStart = Date.now();
 
     const baseMetadata = { notebookId, sourceId };
-    const chunks = pages
-      ? await chunkTextWithPages(pages, baseMetadata)
-      : await chunkText(extractedText, baseMetadata);
+    let chunks;
+    if (transcriptSegments && transcriptSegments.length > 0) {
+      chunks = await chunkTranscript(transcriptSegments, baseMetadata);
+    } else if (pages) {
+      chunks = await chunkTextWithPages(pages, baseMetadata);
+    } else {
+      chunks = await chunkText(extractedText, baseMetadata);
+    }
 
     const chunkDuration = Date.now() - chunkStart;
     log("CHUNK", `Chunking completed in ${chunkDuration}ms`, { chunkCount: chunks.length });
