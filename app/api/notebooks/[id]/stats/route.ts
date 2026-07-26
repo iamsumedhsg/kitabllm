@@ -49,7 +49,7 @@ export async function GET(
       select: { size: true, status: true },
     });
 
-    const totalStorage = sources.reduce((sum, s) => sum + s.size, 0);
+    const totalStorage = sources.reduce((sum: number, s) => sum + s.size, 0);
     const readySources = sources.filter((s) => s.status === "READY").length;
     const indexingSources = sources.filter(
       (s) => s.status === "INDEXING"
