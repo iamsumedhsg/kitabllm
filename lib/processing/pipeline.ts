@@ -121,9 +121,11 @@ export async function processSource(options: ProcessSourceOptions) {
         break;
       }
       case "VTT": {
-        if (!content) throw new Error("VTT content is required");
-        log("EXTRACT", `Parsing VTT content`, { contentLength: content.length });
-        const vttResult = parseVTT(content);
+        // VTT can come as content string OR as a file buffer
+        const vttContent = content || (buffer ? buffer.toString("utf-8") : null);
+        if (!vttContent) throw new Error("VTT content is required");
+        log("EXTRACT", `Parsing VTT content`, { contentLength: vttContent.length });
+        const vttResult = parseVTT(vttContent);
         extractedText = vttResult.fullText;
         metadata = {
           segmentCount: vttResult.segments.length,
