@@ -1,7 +1,5 @@
 import {
   fetchTranscript,
-  YoutubeTranscriptDisabledError,
-  YoutubeTranscriptNotAvailableError,
   type TranscriptResponse,
 } from "youtube-transcript";
 
@@ -55,8 +53,52 @@ async function fetchVideoTitle(videoId: string): Promise<string> {
 }
 
 /**
- * Extract YouTube transcript using the youtube-transcript package
- * Uses InnerTube API (Android client) with web page fallback
+ * Try multiple strategies to fetch the transcript
+ */
+async function fetchTranscriptWithRetries(videoId: string): Promise<TranscriptResponse[]> {
+  const errors: string[] = [];
+
+  // Strategy 1: Try with English language preference
+  try {
+    const result = await fetchTranscript(videoId, { lang: "en" });
+    if (result && result.length > 0) return result;
+  } catch (err: any) {
+    errors.push(`en: ${err.message || err}`);
+  }
+
+  // Strategy 2: Try without any language preference (gets auto-generated)
+  try {
+    const result = await fetchTranscript(videoId);
+    if (result && result.length > 0) return result;
+  } catch (err: any) {
+    errors.push(`no-lang: ${err.message || err}`);
+  }
+
+  // Strategy 3: Try with full URL format instead of just ID
+  try {
+    const result = await fetchTranscript(`https://www.youtube.com/watch?v=${videoId}`);
+    if (result && result.length > 0) return result;
+  } catch (err: any) {
+    errors.push(`full-url: ${err.message || err}`);
+  }
+
+  // Strategy 4: Try with 'auto' language hint
+  try {
+    const result = await fetchTranscript(videoId, { lang: "auto" });
+    if (result && result.length > 0) return result;
+  } catch (err: any) {
+    errors.push(`auto: ${err.message || err}`);
+  }
+
+  // All strategies failed
+  console.error(`[YouTube] All transcript strategies failed for ${videoId}:`, errors);
+  throw new Error(
+    `Could not fetch transcript for this video (${videoId}). The video may not have captions available, or YouTube is blocking the request. Consider uploading a VTT/subtitle file instead. Errors: ${errors.join(" | ")}`
+  );
+}
+
+/**
+ * Extract YouTube transcript using multiple fallback strategies
  */
 export async function extractYouTubeTranscript(
   url: string
@@ -66,24 +108,12 @@ export async function extractYouTubeTranscript(
     throw new Error("Invalid YouTube URL. Supported formats: youtube.com/watch?v=..., youtu.be/..., youtube.com/shorts/...");
   }
 
+  console.log(`[YouTube] Extracting transcript for video: ${videoId}`);
+
   // Fetch title and transcript in parallel
   const [title, transcriptEntries] = await Promise.all([
     fetchVideoTitle(videoId),
-    fetchTranscript(videoId, { lang: "en" }).catch(async (err) => {
-      // If English not available, try without language preference
-      if (err instanceof YoutubeTranscriptNotAvailableError) {
-        throw new Error(
-          `No transcript available for this video (${videoId}). Consider uploading a VTT/subtitle file instead.`
-        );
-      }
-      if (err instanceof YoutubeTranscriptDisabledError) {
-        throw new Error(
-          `Transcripts are disabled for this video (${videoId}). Consider uploading a VTT/subtitle file instead.`
-        );
-      }
-      // Try without language filter as fallback
-      return fetchTranscript(videoId);
-    }),
+    fetchTranscriptWithRetries(videoId),
   ]);
 
   if (!transcriptEntries || transcriptEntries.length === 0) {
@@ -91,6 +121,8 @@ export async function extractYouTubeTranscript(
       "Transcript is empty for this video. Consider uploading a VTT/subtitle file instead."
     );
   }
+
+  console.log(`[YouTube] Got ${transcriptEntries.length} transcript entries for "${title}"`);
 
   // Convert to our segment format
   const segments: TranscriptSegment[] = transcriptEntries
