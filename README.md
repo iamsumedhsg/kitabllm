@@ -2,6 +2,8 @@
 
 **AI Research Notebook** — Upload documents, ask questions, get grounded answers with citations.
 
+LIVE NOW : https://kitabllm.onrender.com
+
 A production-grade research assistant built with a multi-stage RAG pipeline. Think Google NotebookLM / YouTube Ask, but self-hosted.
 
 ![Next.js](https://img.shields.io/badge/Next.js_16-black?logo=next.js)
