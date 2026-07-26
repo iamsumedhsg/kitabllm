@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { useChat } from "@/hooks/use-chat";
 import { useChatStore } from "@/store/chat-store";
 import { ChatInput } from "./chat-input";
 import { ChatMessage } from "./chat-message";
-import { BookOpen, Sparkles } from "lucide-react";
+import { FollowUpSuggestions } from "./follow-up-suggestions";
+import { Sparkles } from "lucide-react";
 
 interface ChatWindowProps {
   notebookId: string;
@@ -20,6 +21,15 @@ export function ChatWindow({ notebookId, notebookTitle }: ChatWindowProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamContent]);
+
+  // Get last user message and assistant response for follow-up suggestions
+  const lastExchange = useMemo(() => {
+    if (messages.length < 2) return null;
+    const lastAssistant = [...messages].reverse().find((m) => m.role === "ASSISTANT");
+    const lastUser = [...messages].reverse().find((m) => m.role === "USER");
+    if (!lastAssistant || !lastUser) return null;
+    return { userMessage: lastUser.content, assistantResponse: lastAssistant.content };
+  }, [messages]);
 
   return (
     <div className="flex flex-col h-full">
@@ -90,6 +100,19 @@ export function ChatWindow({ notebookId, notebookTitle }: ChatWindowProps) {
           </div>
         )}
       </div>
+
+      {/* Follow-up suggestions */}
+      {lastExchange && !isStreaming && (
+        <div className="px-6 pb-2">
+          <FollowUpSuggestions
+            notebookId={notebookId}
+            lastMessage={lastExchange.userMessage}
+            lastResponse={lastExchange.assistantResponse}
+            onSelect={sendMessage}
+            show={!isStreaming && messages.length >= 2}
+          />
+        </div>
+      )}
 
       {/* Input */}
       <div className="border-t border-border p-4">
