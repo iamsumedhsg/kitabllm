@@ -12,8 +12,8 @@ export function CitationList({ citations }: CitationListProps) {
 
   return (
     <div className="flex flex-wrap gap-1.5">
-      {citations.map((citation) => (
-        <CitationChip key={citation.id} citation={citation} />
+      {citations.map((citation, i) => (
+        <CitationChip key={citation.id} citation={citation} index={i} />
       ))}
     </div>
   );

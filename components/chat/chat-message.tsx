@@ -36,18 +36,23 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
             isUser && "prose-invert"
           )}
         >
-          <p className="whitespace-pre-wrap">{message.content}</p>
+          <div className="whitespace-pre-wrap">{message.content}</div>
           {isStreaming && (
             <span className="inline-block w-1.5 h-4 bg-primary animate-pulse ml-0.5" />
           )}
         </div>
 
-        {/* Citations */}
+        {/* Citations as clickable evidence chips */}
         {message.citations && message.citations.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-border/30">
-            {message.citations.map((citation) => (
-              <CitationChip key={citation.id} citation={citation} />
-            ))}
+          <div className="mt-3 pt-3 border-t border-border/30">
+            <p className="text-[10px] text-muted-foreground mb-1.5 font-medium uppercase tracking-wider">
+              Evidence
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {message.citations.map((citation, i) => (
+                <CitationChip key={citation.id} citation={citation} index={i} />
+              ))}
+            </div>
           </div>
         )}
       </div>

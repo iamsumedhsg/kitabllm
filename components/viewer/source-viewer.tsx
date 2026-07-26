@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { X, ExternalLink } from "lucide-react";
 import { useViewerStore } from "@/store/viewer-store";
 import { PDFViewer } from "./pdf-viewer";
 import { WebsiteViewer } from "./website-viewer";
@@ -8,7 +8,7 @@ import { YouTubeViewer } from "./youtube-viewer";
 import { TranscriptViewer } from "./transcript-viewer";
 
 export function SourceViewer() {
-  const { activeSource, activeCitation, closeViewer, highlightChunkId } =
+  const { activeSource, activeCitation, closeViewer, highlightText, highlightChunkId } =
     useViewerStore();
 
   if (!activeSource) return null;
@@ -22,7 +22,7 @@ export function SourceViewer() {
             {activeSource.filename}
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {activeSource.type}
+            {activeSource.type} • Evidence Viewer
           </p>
         </div>
         <button
@@ -39,6 +39,7 @@ export function SourceViewer() {
           <PDFViewer
             source={activeSource}
             pageNumber={activeCitation?.pageNumber}
+            excerpt={highlightText}
           />
         )}
         {activeSource.type === "WEBSITE" && (
@@ -48,12 +49,14 @@ export function SourceViewer() {
           <YouTubeViewer
             source={activeSource}
             timestamp={activeCitation?.timestamp}
+            excerpt={highlightText}
           />
         )}
         {(activeSource.type === "VTT" || activeSource.type === "TEXT") && (
           <TranscriptViewer
             source={activeSource}
             highlightChunkId={highlightChunkId}
+            excerpt={highlightText}
           />
         )}
       </div>

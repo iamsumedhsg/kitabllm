@@ -1,14 +1,15 @@
 "use client";
 
-import { FileText } from "lucide-react";
+import { FileText, BookOpen } from "lucide-react";
 import type { Source } from "@/types";
 
 interface PDFViewerProps {
   source: Source;
   pageNumber?: number | null;
+  excerpt?: string | null;
 }
 
-export function PDFViewer({ source, pageNumber }: PDFViewerProps) {
+export function PDFViewer({ source, pageNumber, excerpt }: PDFViewerProps) {
   const pdfUrl = source.filePath
     ? `/api/sources/${source.id}/content`
     : null;
@@ -23,10 +24,28 @@ export function PDFViewer({ source, pageNumber }: PDFViewerProps) {
   }
 
   return (
-    <div className="w-full h-full">
+    <div className="space-y-3">
+      {/* Evidence indicator */}
+      {(pageNumber || excerpt) && (
+        <div className="rounded-lg bg-primary/5 border border-primary/20 px-3 py-2">
+          <div className="flex items-center gap-2 mb-1">
+            <BookOpen className="h-4 w-4 text-primary flex-shrink-0" />
+            <p className="text-xs font-medium text-primary">
+              {pageNumber ? `Page ${pageNumber}` : "Source Evidence"}
+            </p>
+          </div>
+          {excerpt && (
+            <p className="text-xs text-muted-foreground line-clamp-3 italic border-l-2 border-primary/30 pl-2 mt-1">
+              &ldquo;{excerpt}&rdquo;
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* PDF embed */}
       <iframe
         src={`${pdfUrl}${pageNumber ? `#page=${pageNumber}` : ""}`}
-        className="w-full h-[600px] rounded-lg border border-border"
+        className="w-full h-[550px] rounded-lg border border-border"
         title={source.filename}
       />
     </div>
