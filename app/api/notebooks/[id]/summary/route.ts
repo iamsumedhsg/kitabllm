@@ -54,7 +54,7 @@ export async function POST(
     }
 
     const contextText = sampleChunks
-      .map((c) => `[${c.source.filename}]: ${c.content}`)
+      .map((c: { source: { filename: string }; content: string }) => `[${c.source.filename}]: ${c.content}`)
       .join("\n\n");
 
     const response = await openai.chat.completions.create({
