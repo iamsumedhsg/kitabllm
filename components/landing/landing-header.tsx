@@ -1,14 +1,14 @@
 "use client";
 
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
-import { BookOpen } from "lucide-react";
+import Image from "next/image";
 
 export function LandingHeader() {
   return (
     <header className="landing-header animate-fade-down">
       <div className="landing-header-left">
         <div className="landing-logo">
-          <BookOpen className="h-7 w-7 text-[#A068FF]" />
+          <Image src="/book.svg" alt="KitabLLM" width={28} height={28} />
           <span className="landing-logo-text">KitabLLM</span>
         </div>
         <nav className="landing-nav">
