@@ -1,4 +1,4 @@
-/* Landing Page Styles */
+/* Landing Page Styles — Claymorphism + Soft Palette */
 @property --border-angle {
   syntax: "<angle>";
   initial-value: 0deg;
@@ -7,7 +7,7 @@
 
 .landing-app {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a0533 50%, #0a0a0a 100%);
+  background: #f5f0eb;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -46,7 +46,7 @@
 .landing-logo-text {
   font-size: 20px;
   font-weight: 700;
-  color: #ffffff;
+  color: #2d2a3e;
   font-family: "Urbanist", var(--font-sans), sans-serif;
 }
 
@@ -56,7 +56,7 @@
 }
 
 .landing-nav-link {
-  color: #ffffff99;
+  color: #5c5470;
   font-size: 15px;
   font-weight: 400;
   text-decoration: none;
@@ -65,7 +65,7 @@
 }
 
 .landing-nav-link:hover {
-  color: #ffffff;
+  color: #2d2a3e;
 }
 
 .landing-nav-link::after {
@@ -75,7 +75,8 @@
   left: 0;
   width: 100%;
   height: 2px;
-  background: #A068FF;
+  background: #8b6cc7;
+  border-radius: 1px;
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.3s ease;
@@ -86,13 +87,18 @@
 }
 
 .landing-login-link {
-  color: #ffffff;
+  color: #5c5470;
   font-size: 15px;
   font-weight: 500;
   background: none;
   border: none;
   cursor: pointer;
   position: relative;
+  transition: color 0.2s;
+}
+
+.landing-login-link:hover {
+  color: #2d2a3e;
 }
 
 .landing-login-link::after {
@@ -102,7 +108,8 @@
   left: 0;
   width: 100%;
   height: 2px;
-  background: #ffffff;
+  background: #2d2a3e;
+  border-radius: 1px;
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.3s ease;
@@ -112,24 +119,15 @@
   transform: scaleX(1);
 }
 
-/* CTA Button with animated border */
+/* CTA Button — Clay style */
 .btn-border-wrap {
   position: relative;
   border-radius: 50px;
-  padding: 3px;
-  background: conic-gradient(
-    from var(--border-angle),
-    #A068FF,
-    #070319,
-    #A068FF,
-    #070319,
-    #A068FF
-  );
-  animation: rotate-border 3s linear infinite;
-}
-
-@keyframes rotate-border {
-  to { --border-angle: 360deg; }
+  padding: 2px;
+  background: linear-gradient(135deg, #c4a6e8, #8b6cc7, #c4a6e8);
+  box-shadow:
+    0 4px 12px rgba(139, 108, 199, 0.2),
+    inset 0 1px 2px rgba(255, 255, 255, 0.3);
 }
 
 .landing-cta-btn {
@@ -138,7 +136,7 @@
   gap: 8px;
   padding: 12px 26px;
   border-radius: 50px;
-  background: #000000;
+  background: #2d2a3e;
   color: #ffffff;
   font-size: 15px;
   font-weight: 500;
@@ -147,14 +145,19 @@
   position: relative;
   overflow: hidden;
   z-index: 1;
-  transition: color 0.4s;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.landing-cta-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(139, 108, 199, 0.3);
 }
 
 .landing-cta-btn::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: #A068FF;
+  background: #8b6cc7;
   transform: translateX(-100%);
   transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   z-index: -1;
@@ -197,15 +200,23 @@
 
 .landing-heading {
   font-family: "Urbanist", var(--font-sans), sans-serif;
-  font-size: 64px;
+  font-size: 60px;
   font-weight: 600;
-  line-height: 1;
+  line-height: 1.05;
   letter-spacing: -1.5px;
   margin: 0;
 }
 
+.landing-heading .text-black {
+  color: #2d2a3e;
+}
+
+.landing-heading .text-white {
+  color: #8b6cc7;
+}
+
 .landing-cursor {
-  color: #A068FF;
+  color: #8b6cc7;
   animation: blink 0.8s step-end infinite;
   font-weight: 300;
 }
@@ -216,8 +227,8 @@
 
 .landing-subtitle {
   font-size: 16px;
-  color: #ffffff99;
-  line-height: 1.6;
+  color: #6b6480;
+  line-height: 1.7;
   max-width: 480px;
 }
 
@@ -231,7 +242,7 @@
   gap: 10px;
   padding: 14px 28px;
   border-radius: 50px;
-  background: #060218;
+  background: #2d2a3e;
   color: #ffffff;
   font-size: 16px;
   font-weight: 500;
@@ -240,13 +251,19 @@
   position: relative;
   overflow: hidden;
   z-index: 1;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.landing-start-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(139, 108, 199, 0.3);
 }
 
 .landing-start-btn::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: #A068FF;
+  background: #8b6cc7;
   transform: translateX(100%);
   transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   z-index: -1;
@@ -265,15 +282,19 @@
 }
 
 .landing-badge-pill {
-  background: #A068FF;
-  color: #ffffff;
+  background: rgba(139, 108, 199, 0.12);
+  color: #6b4fa0;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   padding: 8px 16px;
   border-radius: 20px;
+  border: 1px solid rgba(139, 108, 199, 0.2);
+  box-shadow:
+    0 2px 8px rgba(139, 108, 199, 0.08),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5);
 }
 
-/* Circles Visualization */
+/* Circles Visualization — Claymorphism */
 .circles-container {
   position: relative;
   width: 720px;
@@ -286,11 +307,10 @@
   left: 50%;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  border: 1px solid transparent;
-  background-image: linear-gradient(#0000, #0000),
-    linear-gradient(180deg, rgba(217, 161, 255, 0) 0%, rgba(217, 161, 255, 0.4) 43%, rgba(217, 161, 255, 0) 100%);
-  background-origin: border-box;
-  background-clip: padding-box, border-box;
+  border: 1.5px solid rgba(139, 108, 199, 0.15);
+  box-shadow:
+    0 0 0 1px rgba(139, 108, 199, 0.05),
+    inset 0 0 30px rgba(139, 108, 199, 0.03);
   animation: spin 30s linear infinite;
 }
 
@@ -307,20 +327,31 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border-radius: 50%;
+  width: 160px;
+  height: 160px;
+  justify-content: center;
+  border: 1.5px solid rgba(139, 108, 199, 0.15);
+  box-shadow:
+    0 8px 32px rgba(139, 108, 199, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 2px 4px rgba(255, 255, 255, 0.8);
 }
 
 .circles-count {
   font-family: "Urbanist", var(--font-sans), sans-serif;
-  font-size: 56px;
-  font-weight: 500;
-  color: #ffffff;
+  font-size: 48px;
+  font-weight: 600;
+  color: #2d2a3e;
 }
 
 .circles-label {
   font-family: "Urbanist", var(--font-sans), sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
-  color: #ffffff99;
+  color: #6b6480;
 }
 
 .orbit-avatar {
@@ -330,6 +361,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(139, 108, 199, 0.2) !important;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(139, 108, 199, 0.08),
+    inset 0 2px 4px rgba(255, 255, 255, 0.8) !important;
   transform: translate(-50%, -50%)
     rotate(var(--angle))
     translate(var(--radius))
@@ -355,18 +393,20 @@
 }
 
 .orbit-avatar-label {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   font-family: "Urbanist", var(--font-sans), sans-serif;
+  color: #5c4a8a !important;
 }
 
 /* Logo Ticker */
 .landing-logos {
-  padding: 24px 0;
+  padding: 32px 0;
   overflow: hidden;
   position: relative;
   mask: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
   -webkit-mask: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+  border-top: 1px solid rgba(139, 108, 199, 0.1);
 }
 
 .landing-logos-track {
@@ -387,12 +427,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  border: 1px solid rgba(139, 108, 199, 0.08);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.03),
+    inset 0 1px 2px rgba(255, 255, 255, 0.6);
 }
 
 .landing-logo-item-text {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
-  color: #ffffff40;
+  color: #6b6480;
   white-space: nowrap;
   font-family: "Urbanist", var(--font-sans), sans-serif;
 }
@@ -445,7 +491,7 @@
 
 @media (max-width: 1024px) {
   .landing-hero { flex-direction: column; padding: 40px 32px; }
-  .landing-heading { font-size: 48px; }
+  .landing-heading { font-size: 44px; }
   .circles-container { transform: scale(0.7); }
   .landing-nav { gap: 20px; }
   .landing-header { padding: 24px 32px; }
@@ -453,14 +499,14 @@
 
 @media (max-width: 768px) {
   .landing-nav { display: none; }
-  .landing-heading { font-size: 36px; }
+  .landing-heading { font-size: 34px; }
   .circles-container { transform: scale(0.5); }
   .landing-header { padding: 16px 24px; }
   .landing-hero { padding: 20px 24px; }
 }
 
 @media (max-width: 480px) {
-  .landing-heading { font-size: 28px; }
+  .landing-heading { font-size: 26px; }
   .circles-container { transform: scale(0.4); }
   .landing-cta-btn, .landing-start-btn { padding: 10px 20px; font-size: 14px; }
   .landing-logo-item { width: 100px; }
