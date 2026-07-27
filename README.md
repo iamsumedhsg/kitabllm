@@ -6,7 +6,7 @@
   <br />
   
   <h1>KitabLLM</h1>
-  <p><b><a href="https://kitab.issg.me">kitabllm.issg.me</a></b></p>
+  <p><b><a href="https://kitabllm.issg.me">kitabllm.issg.me</a></b></p>
 
   <img src="https://readme-typing-svg.herokuapp.com?font=Inter&weight=500&size=20&pause=1000&color=8b6cc7&center=true&vCenter=true&width=600&lines=Every+answer+has+a+receipt.;Upload.+Ask.+Cite.;AI+that+shows+its+homework.;Turn+200+pages+into+one+answer.+With+proof." alt="Typing SVG" />
   
@@ -15,7 +15,7 @@
   </p>
 
   <p>
-    <a href="https://kitabllm"><img src="https://img.shields.io/badge/Live_Preview-dox.sud--o.app-144637?style=for-the-badge&logo=vercel" alt="Live Demo" /></a>
+    <a href="https://kitabllm.issg.me"><img src="https://img.shields.io/badge/Live_Preview-kitabllm.issg.me-144637?style=for-the-badge&logo=vercel" alt="Live Demo" /></a>
     <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
     <img src="https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js" />
     <img src="https://img.shields.io/badge/tRPC-2596BE?style=for-the-badge&logo=trpc&logoColor=white" alt="tRPC" />
