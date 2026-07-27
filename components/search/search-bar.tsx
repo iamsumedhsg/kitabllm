@@ -94,7 +94,7 @@ export function SearchBar() {
           }}
           onFocus={() => query && setIsOpen(true)}
           placeholder="Search notebooks..."
-          className="w-full rounded-lg border border-border bg-background/50 py-2 pl-9 pr-8 text-sm outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring transition-colors"
+          className="w-full clay-input py-2 pl-9 pr-8 text-sm outline-none placeholder:text-muted-foreground"
         />
         {query && (
           <button

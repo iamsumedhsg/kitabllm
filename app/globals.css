@@ -36,61 +36,63 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Claymorphism Light Theme — Warm beige + soft lavender */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.965 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.965 0 0);
-  --muted-foreground: oklch(0.455 0 0);
-  --accent: oklch(0.965 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-accent: oklch(0.965 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0.75rem;
+  --background: #f5f0eb;
+  --foreground: #2d2a3e;
+  --card: rgba(255, 255, 255, 0.7);
+  --card-foreground: #2d2a3e;
+  --popover: rgba(255, 255, 255, 0.9);
+  --popover-foreground: #2d2a3e;
+  --primary: #8b6cc7;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(139, 108, 199, 0.08);
+  --secondary-foreground: #5c4a8a;
+  --muted: rgba(139, 108, 199, 0.06);
+  --muted-foreground: #6b6480;
+  --accent: rgba(139, 108, 199, 0.08);
+  --accent-foreground: #2d2a3e;
+  --destructive: #d64545;
+  --destructive-foreground: #ffffff;
+  --border: rgba(139, 108, 199, 0.12);
+  --input: rgba(139, 108, 199, 0.1);
+  --ring: rgba(139, 108, 199, 0.3);
+  --sidebar: rgba(255, 255, 255, 0.55);
+  --sidebar-foreground: #2d2a3e;
+  --sidebar-accent: rgba(139, 108, 199, 0.08);
+  --sidebar-accent-foreground: #2d2a3e;
+  --sidebar-border: rgba(139, 108, 199, 0.1);
+  --sidebar-ring: rgba(139, 108, 199, 0.2);
 }
 
+/* Dark mode keeps a muted dark clay feel */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --sidebar: oklch(0.175 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --background: #1a1625;
+  --foreground: #e8e4f0;
+  --card: rgba(40, 35, 55, 0.7);
+  --card-foreground: #e8e4f0;
+  --popover: rgba(40, 35, 55, 0.9);
+  --popover-foreground: #e8e4f0;
+  --primary: #a88adc;
+  --primary-foreground: #1a1625;
+  --secondary: rgba(168, 138, 220, 0.1);
+  --secondary-foreground: #c4b3e0;
+  --muted: rgba(168, 138, 220, 0.08);
+  --muted-foreground: #9a8fb5;
+  --accent: rgba(168, 138, 220, 0.1);
+  --accent-foreground: #e8e4f0;
+  --destructive: #e85555;
+  --destructive-foreground: #ffffff;
+  --border: rgba(168, 138, 220, 0.12);
+  --input: rgba(168, 138, 220, 0.1);
+  --ring: rgba(168, 138, 220, 0.3);
+  --sidebar: rgba(30, 25, 42, 0.8);
+  --sidebar-foreground: #e8e4f0;
+  --sidebar-accent: rgba(168, 138, 220, 0.1);
+  --sidebar-accent-foreground: #e8e4f0;
+  --sidebar-border: rgba(168, 138, 220, 0.1);
+  --sidebar-ring: rgba(168, 138, 220, 0.2);
 }
 
 @layer base {
@@ -101,4 +103,73 @@
     @apply bg-background text-foreground;
     font-family: var(--font-sans), system-ui, sans-serif;
   }
+}
+
+/* Claymorphism utilities */
+.clay-card {
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  border: 1.5px solid var(--border);
+  box-shadow:
+    0 8px 32px rgba(139, 108, 199, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.03),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius-lg);
+}
+
+.clay-input {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid var(--border);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.03),
+    0 1px 2px rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius-md);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.clay-input:focus {
+  border-color: var(--primary);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.03),
+    0 0 0 3px rgba(139, 108, 199, 0.1);
+}
+
+.dark .clay-input {
+  background: rgba(40, 35, 55, 0.5);
+}
+
+.clay-btn {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: none;
+  border-radius: 50px;
+  padding: 10px 20px;
+  font-weight: 500;
+  box-shadow:
+    0 4px 12px rgba(139, 108, 199, 0.25),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.clay-btn:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 6px 20px rgba(139, 108, 199, 0.35),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+.clay-sidebar {
+  background: var(--sidebar);
+  backdrop-filter: blur(16px);
+  border-right: 1.5px solid var(--sidebar-border);
+  box-shadow:
+    4px 0 24px rgba(0, 0, 0, 0.03),
+    inset -1px 0 0 rgba(255, 255, 255, 0.3);
+}
+
+.dark .clay-sidebar {
+  box-shadow:
+    4px 0 24px rgba(0, 0, 0, 0.1),
+    inset -1px 0 0 rgba(255, 255, 255, 0.05);
 }

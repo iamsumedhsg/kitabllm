@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useNotebooks, useDeleteNotebook } from "@/hooks/use-notebooks";
 import { CreateNotebookDialog } from "@/components/notebook/create-notebook-dialog";
@@ -40,7 +41,7 @@ export function AppSidebar() {
     <motion.aside
       initial={false}
       animate={{ width: collapsed ? 60 : 260 }}
-      className="relative flex h-full flex-col border-r border-border bg-sidebar"
+      className="relative flex h-full flex-col clay-sidebar"
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4">
@@ -52,19 +53,19 @@ export function AppSidebar() {
               exit={{ opacity: 0 }}
               className="flex items-center gap-2"
             >
-              <BookOpen className="h-5 w-5 text-primary" />
-              <span className="text-lg font-semibold">KitabLLM</span>
+              <Image src="/book.svg" alt="KitabLLM" width={22} height={22} />
+              <span className="text-lg font-semibold text-foreground">KitabLLM</span>
             </motion.div>
           )}
         </AnimatePresence>
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="rounded-md p-1.5 hover:bg-sidebar-accent transition-colors"
+          className="rounded-lg p-1.5 hover:bg-accent transition-colors"
         >
           {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           ) : (
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4 text-muted-foreground" />
           )}
         </button>
       </div>
@@ -72,7 +73,7 @@ export function AppSidebar() {
       {/* Search */}
       {!collapsed && (
         <div className="px-3 pb-2">
-          <div className="flex items-center gap-2 rounded-lg border border-border bg-background/50 px-3 py-2">
+          <div className="flex items-center gap-2 clay-input px-3 py-2">
             <Search className="h-4 w-4 text-muted-foreground" />
             <input
               type="text"
@@ -88,7 +89,7 @@ export function AppSidebar() {
         <CreateNotebookDialog>
           <button
             className={cn(
-              "flex w-full items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground",
+              "flex w-full items-center gap-2 rounded-xl border border-dashed border-primary/20 px-3 py-2 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground hover:border-primary/30",
               collapsed && "justify-center px-0"
             )}
           >
@@ -108,10 +109,10 @@ export function AppSidebar() {
                 key={notebook.id}
                 href={`/notebook/${notebook.id}`}
                 className={cn(
-                  "group flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+                  "group flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-all",
                   isActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                    ? "bg-primary/10 text-foreground font-medium shadow-sm border border-primary/15"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
                   collapsed && "justify-center px-0"
                 )}
               >
@@ -121,7 +122,7 @@ export function AppSidebar() {
                     <span className="truncate flex-1">{notebook.title}</span>
                     <button
                       onClick={(e) => handleDelete(e, notebook.id)}
-                      className="opacity-0 group-hover:opacity-100 rounded p-0.5 hover:bg-destructive/20 hover:text-destructive transition-all"
+                      className="opacity-0 group-hover:opacity-100 rounded-lg p-0.5 hover:bg-destructive/10 hover:text-destructive transition-all"
                       title="Delete notebook"
                     >
                       <Trash2 className="h-3.5 w-3.5" />

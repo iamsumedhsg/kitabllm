@@ -38,7 +38,7 @@ export function ChatInput({ onSend, onStop, isStreaming }: ChatInputProps) {
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto w-full">
-      <div className="relative flex items-end rounded-xl border border-border bg-background shadow-sm focus-within:border-ring focus-within:ring-1 focus-within:ring-ring transition-all">
+      <div className="relative flex items-end rounded-2xl clay-input shadow-sm focus-within:border-primary focus-within:shadow-[0_0_0_3px_rgba(139,108,199,0.1)] transition-all">
         <textarea
           ref={textareaRef}
           value={input}
