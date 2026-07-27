@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "KitabLLM - AI Research Notebook",
   description: "AI-powered research assistant with RAG capabilities",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
