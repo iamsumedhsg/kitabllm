@@ -1,5 +1,13 @@
 # KitabLLM
 
+
+<img width="1919" height="992" alt="Screenshot 2026-07-27 064942" src="https://github.com/user-attachments/assets/598971fd-adb8-4475-83b6-5ecbb10f5e26" />
+
+
+<img width="1919" height="988" alt="Screenshot 2026-07-27 065204" src="https://github.com/user-attachments/assets/db41bc11-5eba-4d4e-aafe-792dbdcce727" />
+
+---
+
 **AI Research Notebook** — Upload documents, ask questions, get grounded answers with citations.
 
 A production-grade research assistant built with a multi-stage RAG pipeline. Think Google NotebookLM, but self-hosted.
@@ -23,6 +31,11 @@ Upload your research materials — PDFs, websites, VTT transcripts, plain text �
 - **Semantic Search** — Search your notebook without chatting
 - **Claymorphism UI** — Soft frosted glass design with warm beige/lavender palette
 - **Dark/Light Mode** — Horizontal sliding toggle with clay-styled switch
+
+---
+
+<img width="1919" height="990" alt="Screenshot 2026-07-27 065347" src="https://github.com/user-attachments/assets/01a1440e-b013-43b2-8222-b6242868862e" />
+
 
 ---
 
@@ -250,6 +263,8 @@ The app uses a **claymorphism** design language:
 
 - **YouTube links** require a residential IP to fetch transcripts. YouTube blocks all data center IPs (Render, AWS, GCP). Works locally with `bun run dev`. On cloud hosting, upload VTT files instead.
 - **PDF viewer** requires the file to be on the same server. If uploaded on Render and accessed locally, shows excerpt-only mode.
+
+<img width="666" height="478" align="centre" alt="Screenshot 2026-07-27 065256" src="https://github.com/user-attachments/assets/787900c3-03fb-41fb-84d5-d7bf2c7b36e9" />
 
 ---
 
