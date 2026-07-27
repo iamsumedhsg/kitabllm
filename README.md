@@ -2,7 +2,14 @@
 
 **AI Research Notebook** — Upload documents, ask questions, get grounded answers with citations.
 
-LIVE NOW : https://kitabllm.onrender.com
+
+<img width="1919" height="992" alt="image" src="https://github.com/user-attachments/assets/dafc9745-83db-48ae-9e43-668b76e7f64a" />
+
+<img width="1919" height="988" alt="image" src="https://github.com/user-attachments/assets/ae5a3e53-f878-49a9-93ff-8de866295415" />
+
+
+
+LIVE NOW : https://kitabllm.issg.me
 
 A production-grade research assistant built with a multi-stage RAG pipeline. Think Google NotebookLM / YouTube Ask, but self-hosted.
 
@@ -290,6 +297,12 @@ Set environment variables in the Vercel dashboard. The app uses Edge-compatible 
 docker build -t kitabllm .
 docker run -p 3000:3000 --env-file .env kitabllm
 ```
+
+<img width="1919" height="990" alt="image" align="center" src="https://github.com/user-attachments/assets/7d25431f-a6b3-4d69-a37e-ae785047ca1c" />
+
+---
+
+<img width="666" height="478" align="center" alt="image" src="https://github.com/user-attachments/assets/5c625e98-4b72-4a03-a430-156dfefde8a5" />
 
 ---
 
