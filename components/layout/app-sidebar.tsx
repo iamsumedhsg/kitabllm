@@ -53,7 +53,7 @@ export function AppSidebar() {
               exit={{ opacity: 0 }}
               className="flex items-center gap-2"
             >
-              <Image src="/book.svg" alt="KitabLLM" width={22} height={22} />
+              <Image src="/book.svg" alt="KitabLLM" width={22} height={22} className="logo-themed" />
               <span className="text-lg font-semibold text-foreground">KitabLLM</span>
             </motion.div>
           )}
