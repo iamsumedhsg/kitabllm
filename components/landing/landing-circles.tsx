@@ -11,7 +11,7 @@ function useCountUp(target: number, duration: number = 2000, delay: number = 120
       const animate = () => {
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+        const eased = 1 - Math.pow(1 - progress, 3);
         setCount(Math.floor(eased * target));
         if (progress < 1) requestAnimationFrame(animate);
       };
@@ -23,15 +23,39 @@ function useCountUp(target: number, duration: number = 2000, delay: number = 120
   return count;
 }
 
-const sourceIcons = [
-  { orbit: 1, angle: 270, radius: 177, size: 58, shape: "square", glow: "#A068FF", label: "PDF" },
-  { orbit: 2, angle: 60, radius: 251, size: 58, shape: "round", glow: "#FFD700", label: "Web" },
-  { orbit: 2, angle: 180, radius: 251, size: 78, shape: "round", glow: "#FF69B4", label: "VTT" },
-  { orbit: 2, angle: 300, radius: 251, size: 58, shape: "square", glow: "#4DA6FF", label: "Text" },
-  { orbit: 3, angle: 130, radius: 325, size: 88, shape: "round", glow: "#FF69B4", label: "AI" },
-  { orbit: 4, angle: 30, radius: 399, size: 58, shape: "round", glow: "#A068FF", label: "RAG" },
-  { orbit: 4, angle: 150, radius: 399, size: 88, shape: "square", glow: "#FF8C00", label: "Q&A" },
-  { orbit: 4, angle: 270, radius: 399, size: 58, shape: "round", glow: "#A068FF", label: "Cite" },
+const orbits = [
+  {
+    size: 353,
+    dir: "reverse" as const,
+    dur: 30,
+    items: [{ angle: 270, size: 54, shape: "square", label: "PDF" }],
+  },
+  {
+    size: 501,
+    dir: "normal" as const,
+    dur: 40,
+    items: [
+      { angle: 60, size: 54, shape: "round", label: "Web" },
+      { angle: 180, size: 66, shape: "round", label: "VTT" },
+      { angle: 300, size: 54, shape: "square", label: "Text" },
+    ],
+  },
+  {
+    size: 649,
+    dir: "normal" as const,
+    dur: 50,
+    items: [{ angle: 130, size: 72, shape: "round", label: "AI" }],
+  },
+  {
+    size: 797,
+    dir: "reverse" as const,
+    dur: 60,
+    items: [
+      { angle: 30, size: 54, shape: "round", label: "RAG" },
+      { angle: 150, size: 72, shape: "square", label: "Q&A" },
+      { angle: 270, size: 54, shape: "round", label: "Cite" },
+    ],
+  },
 ];
 
 export function LandingCircles() {
@@ -39,54 +63,50 @@ export function LandingCircles() {
 
   return (
     <div className="circles-container animate-scale-in">
-      {/* Orbits */}
-      {[
-        { size: 353, dir: "reverse", dur: "30s" },
-        { size: 501, dir: "normal", dur: "40s" },
-        { size: 649, dir: "normal", dur: "50s" },
-        { size: 797, dir: "reverse", dur: "60s" },
-      ].map((orbit, i) => (
-        <div
-          key={i}
-          className="orbit"
-          style={{
-            width: orbit.size,
-            height: orbit.size,
-            animationDirection: orbit.dir as "normal" | "reverse",
-            animationDuration: orbit.dur,
-          }}
-        />
-      ))}
+      {orbits.map((orbit, oi) => {
+        const radius = orbit.size / 2;
+        return (
+          <div
+            key={oi}
+            className="orbit-ring"
+            style={{
+              width: orbit.size,
+              height: orbit.size,
+              animationDuration: `${orbit.dur}s`,
+              animationDirection: orbit.dir,
+            }}
+          >
+            {orbit.items.map((item, ii) => {
+              const rad = (item.angle * Math.PI) / 180;
+              const x = radius + radius * Math.cos(rad) - item.size / 2;
+              const y = radius + radius * Math.sin(rad) - item.size / 2;
+              return (
+                <div
+                  key={ii}
+                  className="orbit-item"
+                  style={{
+                    width: item.size,
+                    height: item.size,
+                    borderRadius: item.shape === "round" ? "50%" : "16px",
+                    top: y,
+                    left: x,
+                    animationDuration: `${orbit.dur}s`,
+                    animationDirection: orbit.dir === "reverse" ? "normal" : "reverse",
+                  }}
+                >
+                  <span className="orbit-item-label">{item.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
 
-      {/* Center content */}
+      {/* Center */}
       <div className="circles-center">
         <span className="circles-count">{count}+</span>
         <span className="circles-label">Sources Processed</span>
       </div>
-
-      {/* Source type icons on orbits */}
-      {sourceIcons.map((item, i) => (
-        <div
-          key={i}
-          className="orbit-avatar"
-          style={{
-            width: item.size,
-            height: item.size,
-            borderRadius: item.shape === "round" ? "50%" : "20px",
-            boxShadow: `0 0 20px ${item.glow}40, 0 0 40px ${item.glow}20`,
-            background: `${item.glow}15`,
-            border: `2px solid ${item.glow}60`,
-            animationDelay: `${0.6 + i * 0.2}s`,
-            // Position using CSS custom properties
-            ["--angle" as string]: `${item.angle}deg`,
-            ["--radius" as string]: `${item.radius}px`,
-          }}
-        >
-          <span className="orbit-avatar-label" style={{ color: item.glow }}>
-            {item.label}
-          </span>
-        </div>
-      ))}
     </div>
   );
 }

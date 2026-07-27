@@ -301,7 +301,7 @@
   height: 720px;
 }
 
-.orbit {
+.orbit-ring {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -311,11 +311,34 @@
   box-shadow:
     0 0 0 1px rgba(139, 108, 199, 0.05),
     inset 0 0 30px rgba(139, 108, 199, 0.03);
-  animation: spin 30s linear infinite;
+  animation: orbit-spin linear infinite;
 }
 
-@keyframes spin {
+@keyframes orbit-spin {
   to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.orbit-item {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(139, 108, 199, 0.2);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(139, 108, 199, 0.08),
+    inset 0 2px 4px rgba(255, 255, 255, 0.8);
+  /* Counter-rotate to stay upright */
+  animation: orbit-spin linear infinite;
+}
+
+.orbit-item-label {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: "Urbanist", var(--font-sans), sans-serif;
+  color: #5c4a8a;
 }
 
 .circles-center {
@@ -352,51 +375,6 @@
   font-size: 13px;
   font-weight: 600;
   color: #6b6480;
-}
-
-.orbit-avatar {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.75) !important;
-  backdrop-filter: blur(8px);
-  border: 1.5px solid rgba(139, 108, 199, 0.2) !important;
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.06),
-    0 2px 8px rgba(139, 108, 199, 0.08),
-    inset 0 2px 4px rgba(255, 255, 255, 0.8) !important;
-  transform: translate(-50%, -50%)
-    rotate(var(--angle))
-    translate(var(--radius))
-    rotate(calc(-1 * var(--angle)));
-  animation: fly-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
-  opacity: 0;
-}
-
-@keyframes fly-in {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.3) rotate(-180deg);
-    filter: blur(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%)
-      rotate(var(--angle))
-      translate(var(--radius))
-      rotate(calc(-1 * var(--angle)));
-    filter: blur(0);
-  }
-}
-
-.orbit-avatar-label {
-  font-size: 13px;
-  font-weight: 700;
-  font-family: "Urbanist", var(--font-sans), sans-serif;
-  color: #5c4a8a !important;
 }
 
 /* Logo Ticker */
