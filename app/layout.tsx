@@ -18,7 +18,9 @@ export const metadata: Metadata = {
   title: "KitabLLM - AI Research Notebook",
   description: "AI-powered research assistant with RAG capabilities",
   icons: {
-    icon: "/favicon.png",
+    icon: "/fabicon.png",
+    shortcut: "/fabicon.png",
+    apple: "/fabicon.png",
   },
 };
 

@@ -2,39 +2,27 @@
 
 **AI Research Notebook** — Upload documents, ask questions, get grounded answers with citations.
 
-
-<img width="1919" height="992" alt="image" src="https://github.com/user-attachments/assets/dafc9745-83db-48ae-9e43-668b76e7f64a" />
-
-<img width="1919" height="988" alt="image" src="https://github.com/user-attachments/assets/ae5a3e53-f878-49a9-93ff-8de866295415" />
-
-
-
-LIVE NOW : https://kitabllm.issg.me
-
-A production-grade research assistant built with a multi-stage RAG pipeline. Think Google NotebookLM / YouTube Ask, but self-hosted.
-
-![Next.js](https://img.shields.io/badge/Next.js_16-black?logo=next.js)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
-![Prisma](https://img.shields.io/badge/Prisma-2D3748?logo=prisma)
-![Clerk](https://img.shields.io/badge/Clerk-6C47FF?logo=clerk&logoColor=white)
+A production-grade research assistant built with a multi-stage RAG pipeline. Think Google NotebookLM, but self-hosted.
 
 ---
 
 ## What It Does
 
-Upload your research materials — PDFs, YouTube videos, websites, transcripts, text — into isolated notebooks. Ask questions and get structured, cited answers grounded exclusively in your sources. Every claim links back to a specific page or timestamp.
+Upload your research materials — PDFs, websites, VTT transcripts, plain text — into isolated notebooks. Ask questions and get structured answers grounded exclusively in your sources. Every claim links back to a specific page or passage.
 
 ### Key Features
 
-- **Multi-Source RAG** — PDF, YouTube, websites, VTT subtitles, plain text
-- **Timestamp-Aware Citations** — YouTube answers cite exact timestamps like `(3:01-3:09)`
+- **Multi-Source RAG** — PDF, websites, VTT subtitles, plain text
+- **Page-Aware Queries** — Ask "what's on page 35" and get the actual content
 - **Isolated Notebooks** — Each notebook has its own vector space. No cross-contamination.
 - **Streaming Responses** — Real-time SSE streaming with pipeline stage indicators
+- **Markdown Rendering** — Responses rendered with proper formatting (headers, lists, code blocks, tables)
+- **Copy Button** — One-click copy on any AI response
 - **AI Summary** — Generate executive summaries, flashcards, and quizzes from your sources
-- **Follow-Up Suggestions** — AI-generated contextual follow-up questions after each answer
+- **Follow-Up Suggestions** — 3 contextual follow-up questions after each answer
 - **Semantic Search** — Search your notebook without chatting
-- **Source Viewer** — Click a citation to open the PDF page, YouTube timestamp, or text passage
+- **Claymorphism UI** — Soft frosted glass design with warm beige/lavender palette
+- **Dark/Light Mode** — Horizontal sliding toggle with clay-styled switch
 
 ---
 
@@ -42,7 +30,7 @@ Upload your research materials — PDFs, YouTube videos, websites, transcripts, 
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                    Next.js App Router                      │
+│                    Next.js 16 App Router                   │
 ├─────────┬──────────────┬─────────────────┬───────────────┤
 │ Sidebar │ Source Panel │ Chat Interface  │ Source Viewer │
 └────┬────┴──────┬───────┴────────┬────────┴───────┬───────┘
@@ -56,13 +44,14 @@ Upload your research materials — PDFs, YouTube videos, websites, transcripts, 
 ┌─────────┐ ┌──────────┐ ┌────────────────────────────────┐
 │ Source  │ │Embedding │ │    RAG Query Engine             │
 │ Pipeline│ │ Service  │ │                                │
-│         │ │          │ │  Query Decomposition           │
-│ PDF     │ │ text-emb-│ │  → Step-Back Prompting         │
-│ YouTube │ │ 3-small  │ │  → Query Rewrite               │
-│ Website │ │          │ │  → HyDE Generation             │
-│ VTT     │ │ pgvector │ │  → Multi-Query Retrieval       │
-│ Text    │ │          │ │  → RRF Ranking                 │
-└─────────┘ └──────────┘ │  → Progressive Response        │
+│         │ │          │ │  Page Query Detection          │
+│ PDF     │ │ text-emb-│ │  → Query Decomposition         │
+│ Website │ │ 3-small  │ │  → Step-Back Prompting         │
+│ VTT     │ │          │ │  → Query Rewrite               │
+│ Text    │ │ pgvector │ │  → HyDE Generation             │
+│         │ │          │ │  → Multi-Query Retrieval       │
+└─────────┘ └──────────┘ │  → RRF Ranking                 │
+                          │  → Progressive Response        │
                           └────────────────────────────────┘
      │           │                │
      ▼           ▼                ▼
@@ -76,17 +65,16 @@ Upload your research materials — PDFs, YouTube videos, websites, transcripts, 
 
 ## RAG Pipeline
 
-Not a simple "embed → retrieve → generate" setup. The pipeline implements:
-
-1. **Query Decomposition** — Break complex questions into atomic sub-queries
-2. **Step-Back Prompting** — Generate broader context queries
-3. **Query Rewrite** — Fix spelling, resolve ambiguity
-4. **HyDE** — Generate hypothetical answer documents for better retrieval
-5. **Multi-Query Retrieval** — Parallel vector search across all query variants
-6. **MMR** — Maximal Marginal Relevance for diversity
-7. **RRF Ranking** — Reciprocal Rank Fusion to combine retrieval strategies
-8. **Chunk Deduplication & Grouping** — Remove noise, group by source
-9. **Progressive Streaming** — Start responding immediately with increasing confidence
+1. **Page Query Detection** — Detects "page X" queries and short-circuits to direct DB lookup
+2. **Query Decomposition** — Break complex questions into atomic sub-queries
+3. **Step-Back Prompting** — Generate broader context queries
+4. **Query Rewrite** — Fix spelling, resolve ambiguity
+5. **HyDE** — Generate hypothetical answer documents for better retrieval
+6. **Multi-Query Retrieval** — Parallel vector search (fault-tolerant via `Promise.allSettled`)
+7. **MMR** — Maximal Marginal Relevance for diversity
+8. **RRF Ranking** — Reciprocal Rank Fusion to combine retrieval strategies
+9. **Chunk Deduplication & Grouping** — Remove noise, group by source
+10. **Progressive Streaming** — Start responding immediately
 
 ---
 
@@ -94,17 +82,19 @@ Not a simple "embed → retrieve → generate" setup. The pipeline implements:
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 16 (App Router) |
+| Framework | Next.js 16 (App Router, Turbopack) |
 | Language | TypeScript |
 | Styling | Tailwind CSS 4, Framer Motion |
+| UI Design | Claymorphism (frosted glass, soft shadows) |
 | State | Zustand, React Query |
 | Auth | Clerk |
 | Database | Neon PostgreSQL, Prisma 7 |
 | Vectors | pgvector (1536-dim) |
 | LLM | GPT-4.1 via OpenAI-compatible API |
 | Embeddings | text-embedding-3-small |
-| Extraction | pdf-parse, youtube-transcript, readability, cheerio |
+| Extraction | pdf-parse, readability, cheerio |
 | Chunking | LangChain RecursiveCharacterTextSplitter |
+| Markdown | react-markdown, remark-gfm |
 | Validation | Zod |
 
 ---
@@ -114,35 +104,42 @@ Not a simple "embed → retrieve → generate" setup. The pipeline implements:
 ```
 kitabllm/
 ├── app/
-│   ├── (auth)/sign-in, sign-up      # Clerk auth pages
-│   ├── (main)/                       # Authenticated layout
+│   ├── (auth)/sign-in, sign-up
+│   ├── (main)/
 │   │   ├── notebook/[id]/            # Notebook workspace
 │   │   └── page.tsx                  # Dashboard
 │   └── api/
-│       ├── notebooks/                # CRUD
-│       ├── sources/                  # Upload, reindex, delete
+│       ├── notebooks/                # CRUD + stats + summary
+│       ├── sources/                  # Upload, reindex, delete, chunks
 │       ├── chat/                     # Streaming RAG + suggestions
+│       ├── youtube/                  # Transcript pre-fetch
 │       └── search/                   # Semantic search
 ├── components/
-│   ├── chat/                         # ChatWindow, ChatInput, Citations
+│   ├── chat/                         # ChatWindow, ChatInput, Markdown, Citations
 │   ├── source/                       # SourceList, SourceUploader, SourceCard
 │   ├── viewer/                       # PDF, YouTube, Website, Transcript viewers
 │   ├── notebook/                     # NotebookCard, Dashboard, Summary
+│   ├── landing/                      # Landing page (claymorphism, orbiting circles)
+│   ├── search/                       # SearchBar, SemanticSearch
 │   └── layout/                       # Sidebar, Header, ThemeToggle
 ├── lib/
 │   ├── ai/
 │   │   ├── rag/                      # Full pipeline (decompose, hyde, rank, stream)
 │   │   ├── prompts/                  # System prompts
-│   │   ├── embeddings.ts            # Embedding generation
-│   │   └── llm.ts                   # OpenAI client config
+│   │   ├── embeddings.ts
+│   │   └── llm.ts
 │   ├── processing/                   # PDF, YouTube, Website, VTT, Text extractors
-│   ├── vectors/                      # pgvector store & search
+│   ├── vectors/                      # pgvector store & search + page search
 │   └── validators/                   # Zod schemas
-├── store/                            # Zustand stores
+├── store/                            # Zustand (chat, notebook, source, viewer)
 ├── hooks/                            # React Query hooks
 ├── types/                            # Shared TypeScript types
-├── prisma/schema.prisma              # Database schema
-└── docker-compose.yml                # Local dev with pgvector
+├── scripts/                          # Debug & maintenance scripts
+├── prisma/schema.prisma
+├── public/
+│   ├── book.svg                      # Logo (theme-adaptive)
+│   └── fabicon.png                   # Site favicon
+└── docker-compose.yml
 ```
 
 ---
@@ -159,7 +156,6 @@ kitabllm/
 ### Setup
 
 ```bash
-# Clone and install
 cd kitabllm
 bun install
 
@@ -169,9 +165,6 @@ cp .env.example .env
 
 # Setup database
 bunx prisma migrate dev
-
-# Generate Prisma client
-bunx prisma generate
 
 # Run development server
 bun run dev
@@ -203,45 +196,19 @@ bun run dev
 
 ---
 
-## How It Works
-
-### Source Processing Pipeline
+## Source Processing
 
 ```
-Upload → Extract → Clean → Chunk (with timestamps) → Embed → Store in pgvector
+Upload → Extract → Clean → Chunk → Embed → Store in pgvector
 ```
 
 | Source Type | Extraction Method |
 |------------|------------------|
-| PDF | pdf-parse (page-aware chunking) |
-| YouTube | youtube-transcript (InnerTube API, timestamp-preserving chunks) |
+| PDF | pdf-parse (page-aware chunking with page numbers) |
 | Website | @mozilla/readability + cheerio (nav/footer/ads stripped) |
-| VTT | Custom parser (timestamp segments) |
+| VTT | Custom parser (timestamp segments, file or text input) |
 | Text | Direct storage |
-
-### Query Flow
-
-```
-"What happened with OpenAI and Hugging Face?"
-         │
-         ▼
-┌─ Decompose into sub-queries
-├─ Generate step-back query (broader context)
-├─ Rewrite query (fix typos/ambiguity)
-└─ Generate HyDE document (hypothetical answer)
-         │
-         ▼ (all queries run in parallel)
-┌─ Vector search (rewritten query, MMR)
-├─ Vector search (step-back query)
-├─ Vector search (HyDE document)
-└─ Vector search (sub-queries)
-         │
-         ▼
-   RRF Fusion → Deduplicate → Group by source → Top 5 groups
-         │
-         ▼
-   Stream response with inline timestamp citations
-```
+| YouTube | Coming soon (blocked by YouTube's data center IP restrictions) |
 
 ---
 
@@ -258,6 +225,7 @@ Upload → Extract → Clean → Chunk (with timestamps) → Embed → Store in 
 | `POST` | `/api/sources/upload` | Upload & process source |
 | `DELETE` | `/api/sources/:id` | Delete source + vectors |
 | `POST` | `/api/sources/:id/reindex` | Re-process source |
+| `GET` | `/api/sources/:id/chunks` | Get chunks for viewer |
 | `POST` | `/api/chat` | Streaming RAG response (SSE) |
 | `GET` | `/api/chat/history` | Conversation history |
 | `POST` | `/api/chat/suggestions` | Follow-up questions |
@@ -265,31 +233,32 @@ Upload → Extract → Clean → Chunk (with timestamps) → Embed → Store in 
 
 ---
 
-## Database Schema
+## Design
 
-```
-User (Clerk-synced)
- └── Notebook
-      ├── Source (PDF/YT/Web/VTT/Text)
-      │    └── Chunk (content + embedding vector)
-      └── Conversation
-           └── Message
-                └── Citation → Source + Chunk
-```
+The app uses a **claymorphism** design language:
 
-All vectors are 1536-dimensional (text-embedding-3-small). Search is scoped to notebook ID — complete isolation.
+- Warm beige background (`#f5f0eb`)
+- Frosted glass cards (`backdrop-filter: blur`, translucent borders)
+- Soft multi-layered shadows (inset highlights + diffused outer)
+- Lavender/purple accent (`#8b6cc7`)
+- Theme-adaptive logo (inverts in dark mode)
+- Horizontal sliding theme toggle
+
+---
+
+## Known Limitations
+
+- **YouTube links** require a residential IP to fetch transcripts. YouTube blocks all data center IPs (Render, AWS, GCP). Works locally with `bun run dev`. On cloud hosting, upload VTT files instead.
+- **PDF viewer** requires the file to be on the same server. If uploaded on Render and accessed locally, shows excerpt-only mode.
 
 ---
 
 ## Deployment
 
-### Vercel
+### Render
 
-```bash
-vercel deploy
-```
-
-Set environment variables in the Vercel dashboard. The app uses Edge-compatible dependencies.
+Build command: `bun install; bun run build`
+Start command: `bun run start`
 
 ### Docker
 
@@ -298,18 +267,8 @@ docker build -t kitabllm .
 docker run -p 3000:3000 --env-file .env kitabllm
 ```
 
-<img width="1919" height="990" alt="image" align="center" src="https://github.com/user-attachments/assets/7d25431f-a6b3-4d69-a37e-ae785047ca1c" />
-
----
-
-<img width="666" height="478" align="center" alt="image" src="https://github.com/user-attachments/assets/5c625e98-4b72-4a03-a430-156dfefde8a5" />
-
 ---
 
 ## License
 
 MIT
-
----
-
-Built with obsessive attention to RAG quality. Not a demo — a tool you'd actually use for research.
